@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sejarah Kehadiran">
+    <title>Sejarah - Kehadiran Tahfiz</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <style>
+        .filter-section {
+            background: white;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .filter-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .filter-grid input {
+            padding: 10px;
+            border: 2px solid #E0E0E0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .filter-grid input:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .history-item {
+            background: white;
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 4px solid #4CAF50;
+        }
+        .history-item.late {
+            border-left-color: #ff9800;
+        }
+        .history-item.absent {
+            border-left-color: #f44336;
+        }
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .history-date {
+            font-weight: 600;
+            color: #212121;
+            font-size: 16px;
+        }
+        .history-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .history-badge.hadir {
+            background-color: #E8F5E9;
+            color: #2E7D32;
+        }
+        .history-badge.lewat {
+            background-color: #FFF3E0;
+            color: #F57C00;
+        }
+        .history-badge.absent {
+            background-color: #FFEBEE;
+            color: #C62828;
+        }
+        .history-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 14px;
+            color: #757575;
+        }
+        .history-detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+        .detail-label {
+            font-size: 12px;
+            color: #9E9E9E;
+            margin-bottom: 4px;
+        }
+        .detail-value {
+            color: #212121;
+            font-weight: 500;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #757575;
+        }
+        .empty-state svg {
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+        .loading-state {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        .spinner-large {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #E0E0E0;
+            border-top-color: #4CAF50;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        @media (max-width: 480px) {
+            .filter-grid {
+                grid-template-columns: 1fr;
+            }
+            .history-details {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body class="user-page">
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-content">
+            <h1>Sejarah Kehadiran</h1>
+            <button class="btn-icon" id="profileBtn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <circle cx="12" cy="8" r="4"/>
+                    <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <h3 style="margin-bottom: 12px;">Penapis Tarikh</h3>
+            <div class="filter-grid">
+                <input type="date" id="startDate" placeholder="Dari">
+                <input type="date" id="endDate" placeholder="Hingga">
+            </div>
+            <button class="btn btn-primary btn-block" id="filterBtn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                </svg>
+                <span>Tapis</span>
+            </button>
+        </div>
+
+        <!-- Loading State -->
+        <div class="loading-state" id="loadingState">
+            <div class="spinner-large"></div>
+            <p>Memuatkan data...</p>
+        </div>
+
+        <!-- History List -->
+        <div class="history-list" id="historyList" style="display: none;">
+            <!-- Items will be inserted here by JavaScript -->
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+            <h3>Tiada Rekod Kehadiran</h3>
+            <p>Rekod kehadiran anda akan dipaparkan di sini.</p>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="user-dashboard.html" class="nav-item">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            <span>Home</span>
+        </a>
+        <a href="user-history.html" class="nav-item active">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span>Sejarah</span>
+        </a>
+        <a href="#" class="nav-item" id="profileNav">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="8" r="4"/>
+                <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
+            </svg>
+            <span>Profil</span>
+        </a>
+    </nav>
+
+    <!-- Profile Modal -->
+    <div class="modal" id="profileModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Profil Pengguna</h2>
+                <button class="btn-close" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="profile-info">
+                    <p><strong>Nama:</strong> <span id="modalUserName">--</span></p>
+                    <p><strong>Email:</strong> <span id="modalUserEmail">--</span></p>
+                    <p><strong>Role:</strong> <span id="modalUserRole">Guru</span></p>
+                </div>
+                <button class="btn btn-secondary btn-block" id="logoutBtn">Log Keluar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/google-sheets.js"></script>
+    <script>
+        // Page state
+        let currentUser = null;
+        let attendanceHistory = [];
+
+        // DOM Elements
+        const DOM = {
+            loadingState: document.getElementById('loadingState'),
+            historyList: document.getElementById('historyList'),
+            emptyState: document.getElementById('emptyState'),
+            startDate: document.getElementById('startDate'),
+            endDate: document.getElementById('endDate'),
+            filterBtn: document.getElementById('filterBtn'),
+            profileBtn: document.getElementById('profileBtn'),
+            profileNav: document.getElementById('profileNav'),
+            profileModal: document.getElementById('profileModal'),
+            closeModal: document.getElementById('closeModal'),
+            logoutBtn: document.getElementById('logoutBtn'),
+            modalUserName: document.getElementById('modalUserName'),
+            modalUserEmail: document.getElementById('modalUserEmail'),
+            modalUserRole: document.getElementById('modalUserRole')
+        };
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', async function() {
+            if (!AuthManager.protectPage()) {
+                return;
+            }
+
+            currentUser = AuthManager.getCurrentUser();
+            setupDateFilters();
+            await loadAttendanceHistory();
+            setupEventListeners();
+        });
+
+        // Setup date filters with default values
+        function setupDateFilters() {
+            const today = new Date();
+            const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+            DOM.startDate.value = formatDateForInput(firstDayOfMonth);
+            DOM.endDate.value = formatDateForInput(today);
+        }
+
+        // Format date for input field (YYYY-MM-DD)
+        function formatDateForInput(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // Load attendance history
+        async function loadAttendanceHistory() {
+            try {
+                showLoading();
+
+                const startDate = DOM.startDate.value;
+                const endDate = DOM.endDate.value;
+
+                const response = await SheetsAPI.getAttendance(
+                    currentUser.id,
+                    currentUser.role,
+                    startDate,
+                    endDate
+                );
+
+                if (response.success) {
+                    attendanceHistory = response.data || [];
+                    displayAttendanceHistory();
+                } else {
+                    throw new Error(response.message || 'Gagal memuatkan data');
+                }
+
+            } catch (error) {
+                console.error('Load history error:', error);
+                showEmpty();
+                alert('Ralat memuatkan sejarah kehadiran: ' + error.message);
+            }
+        }
+
+        // Display attendance history
+        function displayAttendanceHistory() {
+            DOM.loadingState.style.display = 'none';
+
+            if (attendanceHistory.length === 0) {
+                showEmpty();
+                return;
+            }
+
+            DOM.historyList.style.display = 'flex';
+            DOM.emptyState.style.display = 'none';
+            DOM.historyList.innerHTML = '';
+
+            // Sort by date descending
+            const sortedHistory = [...attendanceHistory].sort((a, b) => {
+                return new Date(b.date) - new Date(a.date);
+            });
+
+            sortedHistory.forEach(record => {
+                const item = createHistoryItem(record);
+                DOM.historyList.appendChild(item);
+            });
+        }
+
+        // Create history item element
+        function createHistoryItem(record) {
+            const div = document.createElement('div');
+            div.className = 'history-item';
+
+            // Add status class
+            if (record.status === 'Lewat') {
+                div.classList.add('late');
+            } else if (record.status === 'Tidak Hadir') {
+                div.classList.add('absent');
+            }
+
+            const badgeClass = record.status === 'Hadir' ? 'hadir' :
+                              record.status === 'Lewat' ? 'lewat' : 'absent';
+
+            div.innerHTML = `
+                <div class="history-header">
+                    <div class="history-date">${formatDisplayDate(record.date)}</div>
+                    <span class="history-badge ${badgeClass}">${record.status || 'Hadir'}</span>
+                </div>
+                <div class="history-details">
+                    <div class="history-detail-item">
+                        <span class="detail-label">Masuk</span>
+                        <span class="detail-value">${record.checkIn || '--:--'}</span>
+                    </div>
+                    <div class="history-detail-item">
+                        <span class="detail-label">Keluar</span>
+                        <span class="detail-value">${record.checkOut || '--:--'}</span>
+                    </div>
+                    <div class="history-detail-item">
+                        <span class="detail-label">Durasi</span>
+                        <span class="detail-value">${record.duration || '--'}</span>
+                    </div>
+                    <div class="history-detail-item">
+                        <span class="detail-label">Jarak</span>
+                        <span class="detail-value">${record.distance ? record.distance + 'm' : '--'}</span>
+                    </div>
+                </div>
+            `;
+
+            return div;
+        }
+
+        // Format date for display (DD/MM/YYYY)
+        function formatDisplayDate(dateString) {
+            const date = new Date(dateString);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+
+            const days = ['Ahad', 'Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jumaat', 'Sabtu'];
+            const dayName = days[date.getDay()];
+
+            return `${dayName}, ${day}/${month}/${year}`;
+        }
+
+        // Show loading state
+        function showLoading() {
+            DOM.loadingState.style.display = 'block';
+            DOM.historyList.style.display = 'none';
+            DOM.emptyState.style.display = 'none';
+        }
+
+        // Show empty state
+        function showEmpty() {
+            DOM.loadingState.style.display = 'none';
+            DOM.historyList.style.display = 'none';
+            DOM.emptyState.style.display = 'block';
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Filter button
+            DOM.filterBtn.addEventListener('click', loadAttendanceHistory);
+
+            // Profile modal
+            [DOM.profileBtn, DOM.profileNav].forEach(btn => {
+                if (btn) {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        openProfileModal();
+                    });
+                }
+            });
+
+            DOM.closeModal.addEventListener('click', closeProfileModal);
+
+            DOM.profileModal.addEventListener('click', (e) => {
+                if (e.target === DOM.profileModal) {
+                    closeProfileModal();
+                }
+            });
+
+            // Logout
+            DOM.logoutBtn.addEventListener('click', () => {
+                if (confirm('Adakah anda pasti mahu log keluar?')) {
+                    AuthManager.logout();
+                }
+            });
+        }
+
+        // Open profile modal
+        function openProfileModal() {
+            DOM.modalUserName.textContent = currentUser.name;
+            DOM.modalUserEmail.textContent = currentUser.email;
+            DOM.modalUserRole.textContent = currentUser.role === 'admin' ? 'Admin' : 'Guru';
+            DOM.profileModal.classList.add('active');
+        }
+
+        // Close profile modal
+        function closeProfileModal() {
+            DOM.profileModal.classList.remove('active');
+        }
+    </script>
+</body>
+</html>

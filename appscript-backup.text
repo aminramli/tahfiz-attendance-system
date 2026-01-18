@@ -1,0 +1,590 @@
+// ============================================
+// SISTEM KEHADIRAN TAHFIZ - GOOGLE APPS SCRIPT
+// ============================================
+// Fail ini mengandungi semua kod backend untuk Google Apps Script
+// Upload fail ini ke Google Apps Script Editor anda
+
+// ============================================
+// 1. Code.gs (Main Backend File)
+// ============================================
+
+// Configuration
+const SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID_HERE'; // Ganti dengan ID Google Sheet anda
+const SHEET_USERS = 'Users';
+const SHEET_ATTENDANCE = 'Attendance';
+const SHEET_SETTINGS = 'Settings';
+
+// GPS Settings (Koordinat Tahfiz)
+const TAHFIZ_LAT = 3.1390; // Ganti dengan koordinat tahfiz anda
+const TAHFIZ_LNG = 101.6869;
+const ALLOWED_RADIUS = 200; // 200 meter radius
+
+/**
+ * Serve HTML pages
+ */
+function doGet(e) {
+  const page = e.parameter.page || 'login';
+
+  if (page === 'dashboard') {
+    return HtmlService.createHtmlOutputFromFile('dashboard')
+      .setTitle('Dashboard Kehadiran Tahfiz')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
+
+  return HtmlService.createHtmlOutputFromFile('login')
+    .setTitle('Login - Sistem Kehadiran')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+/**
+ * Handle POST requests (API endpoints)
+ */
+function doPost(e) {
+  try {
+    const params = JSON.parse(e.postData.contents);
+    const action = params.action;
+
+    switch(action) {
+      case 'login':
+        return handleLogin(params);
+      case 'checkIn':
+        return handleCheckIn(params);
+      case 'checkOut':
+        return handleCheckOut(params);
+      case 'getAttendance':
+        return getAttendanceRecords(params);
+      case 'getUserStats':
+        return getUserStats(params);
+      case 'addUser':
+        return addUser(params);
+      case 'updateUser':
+        return updateUser(params);
+      case 'deleteUser':
+        return deleteUser(params);
+      case 'getAllUsers':
+        return getAllUsers();
+      default:
+        return createResponse(false, 'Invalid action');
+    }
+  } catch (error) {
+    return createResponse(false, 'Error: ' + error.message);
+  }
+}
+
+/**
+ * Create standardized JSON response
+ */
+function createResponse(success, message, data = null) {
+  const response = {
+    success: success,
+    message: message,
+    timestamp: new Date().toISOString()
+  };
+
+  if (data !== null) {
+    response.data = data;
+  }
+
+  return ContentService
+    .createTextOutput(JSON.stringify(response))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * Get spreadsheet
+ */
+function getSpreadsheet() {
+  return SpreadsheetApp.openById(SPREADSHEET_ID);
+}
+
+/**
+ * Get sheet by name
+ */
+function getSheet(sheetName) {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(sheetName);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+    initializeSheet(sheet, sheetName);
+  }
+
+  return sheet;
+}
+
+/**
+ * Initialize sheet with headers
+ */
+function initializeSheet(sheet, sheetName) {
+  if (sheetName === SHEET_USERS) {
+    sheet.appendRow(['ID', 'Email', 'Password', 'Nama', 'Role', 'Status', 'Created', 'LastLogin']);
+
+    // Add default admin account
+    const adminPassword = hashPassword('admin123');
+    sheet.appendRow([
+      generateId(),
+      'admin@tahfiz.com',
+      adminPassword,
+      'Administrator',
+      'Admin',
+      'Active',
+      new Date().toISOString(),
+      ''
+    ]);
+
+    // Add default guru account
+    const guruPassword = hashPassword('guru123');
+    sheet.appendRow([
+      generateId(),
+      'guru@tahfiz.com',
+      guruPassword,
+      'Guru Contoh',
+      'Guru',
+      'Active',
+      new Date().toISOString(),
+      ''
+    ]);
+
+  } else if (sheetName === SHEET_ATTENDANCE) {
+    sheet.appendRow([
+      'ID',
+      'UserID',
+      'UserName',
+      'Email',
+      'Date',
+      'CheckIn',
+      'CheckOut',
+      'CheckInLat',
+      'CheckInLng',
+      'CheckOutLat',
+      'CheckOutLng',
+      'Duration',
+      'Status',
+      'Notes'
+    ]);
+
+  } else if (sheetName === SHEET_SETTINGS) {
+    sheet.appendRow(['Key', 'Value', 'Description']);
+    sheet.appendRow(['tahfiz_lat', TAHFIZ_LAT, 'Latitude Tahfiz']);
+    sheet.appendRow(['tahfiz_lng', TAHFIZ_LNG, 'Longitude Tahfiz']);
+    sheet.appendRow(['allowed_radius', ALLOWED_RADIUS, 'Radius dibenarkan (meter)']);
+  }
+}
+
+/**
+ * Generate unique ID
+ */
+function generateId() {
+  return 'ID' + new Date().getTime() + Math.random().toString(36).substr(2, 9);
+}
+
+/**
+ * Hash password (simple hash - untuk production guna library yang lebih selamat)
+ */
+function hashPassword(password) {
+  return Utilities.base64Encode(Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    password + 'TAHFIZ_SALT_2024'
+  ));
+}
+
+/**
+ * Verify password
+ */
+function verifyPassword(password, hash) {
+  return hashPassword(password) === hash;
+}
+
+/**
+ * Handle login
+ */
+function handleLogin(params) {
+  const email = params.email;
+  const password = params.password;
+
+  if (!email || !password) {
+    return createResponse(false, 'Email dan password diperlukan');
+  }
+
+  const sheet = getSheet(SHEET_USERS);
+  const data = sheet.getDataRange().getValues();
+
+  // Skip header row
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+
+    if (row[1] === email && row[5] === 'Active') {
+      // Verify password
+      if (verifyPassword(password, row[2])) {
+        // Update last login
+        sheet.getRange(i + 1, 8).setValue(new Date().toISOString());
+
+        return createResponse(true, 'Login berjaya', {
+          id: row[0],
+          email: row[1],
+          name: row[3],
+          role: row[4],
+          status: row[5]
+        });
+      }
+    }
+  }
+
+  return createResponse(false, 'Email atau password salah');
+}
+
+/**
+ * Calculate distance between two coordinates (Haversine formula)
+ */
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371e3; // Earth radius in meters
+  const Æ1 = lat1 * Math.PI / 180;
+  const Æ2 = lat2 * Math.PI / 180;
+  const ”Æ = (lat2 - lat1) * Math.PI / 180;
+  const ”» = (lon2 - lon1) * Math.PI / 180;
+
+  const a = Math.sin(”Æ/2) * Math.sin(”Æ/2) +
+            Math.cos(Æ1) * Math.cos(Æ2) *
+            Math.sin(”»/2) * Math.sin(”»/2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+  return R * c; // Distance in meters
+}
+
+/**
+ * Verify GPS location
+ */
+function verifyLocation(lat, lng) {
+  const distance = calculateDistance(TAHFIZ_LAT, TAHFIZ_LNG, lat, lng);
+  return {
+    valid: distance <= ALLOWED_RADIUS,
+    distance: Math.round(distance),
+    maxDistance: ALLOWED_RADIUS
+  };
+}
+
+/**
+ * Handle check-in
+ */
+function handleCheckIn(params) {
+  const userId = params.userId;
+  const userName = params.userName;
+  const email = params.email;
+  const lat = parseFloat(params.lat);
+  const lng = parseFloat(params.lng);
+
+  if (!userId || !lat || !lng) {
+    return createResponse(false, 'Data tidak lengkap');
+  }
+
+  // Verify location
+  const locationCheck = verifyLocation(lat, lng);
+
+  if (!locationCheck.valid) {
+    return createResponse(false,
+      `Anda berada ${locationCheck.distance}m dari tahfiz. Sila berada dalam radius ${locationCheck.maxDistance}m`
+    );
+  }
+
+  const sheet = getSheet(SHEET_ATTENDANCE);
+  const today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+
+  // Check if already checked in today
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][1] === userId && data[i][4] === today) {
+      return createResponse(false, 'Anda sudah check-in hari ini');
+    }
+  }
+
+  // Add check-in record
+  const now = new Date();
+  const timeString = Utilities.formatDate(now, Session.getScriptTimeZone(), 'HH:mm:ss');
+
+  sheet.appendRow([
+    generateId(),
+    userId,
+    userName,
+    email,
+    today,
+    timeString,
+    '', // CheckOut (empty)
+    lat,
+    lng,
+    '', // CheckOutLat (empty)
+    '', // CheckOutLng (empty)
+    '', // Duration (empty)
+    'Present',
+    'Check-in: ' + locationCheck.distance + 'm dari tahfiz'
+  ]);
+
+  return createResponse(true, 'Check-in berjaya! Jarak: ' + locationCheck.distance + 'm', {
+    checkInTime: timeString,
+    distance: locationCheck.distance
+  });
+}
+
+/**
+ * Handle check-out
+ */
+function handleCheckOut(params) {
+  const userId = params.userId;
+  const lat = parseFloat(params.lat);
+  const lng = parseFloat(params.lng);
+
+  if (!userId || !lat || !lng) {
+    return createResponse(false, 'Data tidak lengkap');
+  }
+
+  // Verify location
+  const locationCheck = verifyLocation(lat, lng);
+
+  if (!locationCheck.valid) {
+    return createResponse(false,
+      `Anda berada ${locationCheck.distance}m dari tahfiz. Sila berada dalam radius ${locationCheck.maxDistance}m`
+    );
+  }
+
+  const sheet = getSheet(SHEET_ATTENDANCE);
+  const today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  const data = sheet.getDataRange().getValues();
+
+  // Find today's check-in record
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][1] === userId && data[i][4] === today && data[i][6] === '') {
+      const now = new Date();
+      const timeString = Utilities.formatDate(now, Session.getScriptTimeZone(), 'HH:mm:ss');
+
+      // Calculate duration
+      const checkInTime = new Date(today + ' ' + data[i][5]);
+      const checkOutTime = now;
+      const durationMs = checkOutTime - checkInTime;
+      const hours = Math.floor(durationMs / 3600000);
+      const minutes = Math.floor((durationMs % 3600000) / 60000);
+      const duration = hours + 'h ' + minutes + 'm';
+
+      // Update check-out
+      sheet.getRange(i + 1, 7).setValue(timeString); // CheckOut
+      sheet.getRange(i + 1, 10).setValue(lat); // CheckOutLat
+      sheet.getRange(i + 1, 11).setValue(lng); // CheckOutLng
+      sheet.getRange(i + 1, 12).setValue(duration); // Duration
+      sheet.getRange(i + 1, 14).setValue(data[i][13] + ' | Check-out: ' + locationCheck.distance + 'm'); // Notes
+
+      return createResponse(true, 'Check-out berjaya! Durasi: ' + duration, {
+        checkOutTime: timeString,
+        duration: duration,
+        distance: locationCheck.distance
+      });
+    }
+  }
+
+  return createResponse(false, 'Tiada rekod check-in untuk hari ini');
+}
+
+/**
+ * Get attendance records
+ */
+function getAttendanceRecords(params) {
+  const userId = params.userId;
+  const role = params.role;
+  const startDate = params.startDate;
+  const endDate = params.endDate;
+
+  const sheet = getSheet(SHEET_ATTENDANCE);
+  const data = sheet.getDataRange().getValues();
+  const records = [];
+
+  // Skip header
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+
+    // Filter by user (if not admin)
+    if (role !== 'Admin' && row[1] !== userId) {
+      continue;
+    }
+
+    // Filter by date range
+    if (startDate && row[4] < startDate) continue;
+    if (endDate && row[4] > endDate) continue;
+
+    records.push({
+      id: row[0],
+      userId: row[1],
+      userName: row[2],
+      email: row[3],
+      date: row[4],
+      checkIn: row[5],
+      checkOut: row[6],
+      checkInLat: row[7],
+      checkInLng: row[8],
+      checkOutLat: row[9],
+      checkOutLng: row[10],
+      duration: row[11],
+      status: row[12],
+      notes: row[13]
+    });
+  }
+
+  return createResponse(true, 'Rekod berjaya diambil', records);
+}
+
+/**
+ * Get user statistics
+ */
+function getUserStats(params) {
+  const userId = params.userId;
+  const month = params.month || Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM');
+
+  const sheet = getSheet(SHEET_ATTENDANCE);
+  const data = sheet.getDataRange().getValues();
+
+  let totalPresent = 0;
+  let totalLate = 0;
+  let totalHours = 0;
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+
+    if (row[1] === userId && row[4].indexOf(month) === 0) {
+      if (row[12] === 'Present') totalPresent++;
+      if (row[12] === 'Late') totalLate++;
+
+      // Parse duration
+      if (row[11]) {
+        const duration = row[11].toString();
+        const hours = parseInt(duration.match(/(\d+)h/)?.[1] || 0);
+        const minutes = parseInt(duration.match(/(\d+)m/)?.[1] || 0);
+        totalHours += hours + (minutes / 60);
+      }
+    }
+  }
+
+  return createResponse(true, 'Statistik berjaya diambil', {
+    totalPresent: totalPresent,
+    totalLate: totalLate,
+    totalHours: Math.round(totalHours * 10) / 10,
+    month: month
+  });
+}
+
+/**
+ * Add new user (Admin only)
+ */
+function addUser(params) {
+  const sheet = getSheet(SHEET_USERS);
+
+  // Check if email already exists
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][1] === params.email) {
+      return createResponse(false, 'Email sudah wujud');
+    }
+  }
+
+  const hashedPassword = hashPassword(params.password);
+
+  sheet.appendRow([
+    generateId(),
+    params.email,
+    hashedPassword,
+    params.name,
+    params.role,
+    params.status || 'Active',
+    new Date().toISOString(),
+    ''
+  ]);
+
+  return createResponse(true, 'Pengguna berjaya ditambah');
+}
+
+/**
+ * Update user (Admin only)
+ */
+function updateUser(params) {
+  const sheet = getSheet(SHEET_USERS);
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === params.userId) {
+      if (params.name) sheet.getRange(i + 1, 4).setValue(params.name);
+      if (params.role) sheet.getRange(i + 1, 5).setValue(params.role);
+      if (params.status) sheet.getRange(i + 1, 6).setValue(params.status);
+      if (params.password) {
+        sheet.getRange(i + 1, 3).setValue(hashPassword(params.password));
+      }
+
+      return createResponse(true, 'Pengguna berjaya dikemaskini');
+    }
+  }
+
+  return createResponse(false, 'Pengguna tidak dijumpai');
+}
+
+/**
+ * Delete user (Admin only)
+ */
+function deleteUser(params) {
+  const sheet = getSheet(SHEET_USERS);
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === params.userId) {
+      sheet.deleteRow(i + 1);
+      return createResponse(true, 'Pengguna berjaya dipadam');
+    }
+  }
+
+  return createResponse(false, 'Pengguna tidak dijumpai');
+}
+
+/**
+ * Get all users (Admin only)
+ */
+function getAllUsers() {
+  const sheet = getSheet(SHEET_USERS);
+  const data = sheet.getDataRange().getValues();
+  const users = [];
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    users.push({
+      id: row[0],
+      email: row[1],
+      name: row[3],
+      role: row[4],
+      status: row[5],
+      created: row[6],
+      lastLogin: row[7]
+    });
+  }
+
+  return createResponse(true, 'Senarai pengguna berjaya diambil', users);
+}
+
+
+// ============================================
+// TAMAT - Code.gs
+// ============================================
+
+
+// ============================================
+// CARA SETUP:
+// ============================================
+// 1. Buat Google Sheet baru
+// 2. Salin SPREADSHEET_ID dari URL (contoh: docs.google.com/spreadsheets/d/SPREADSHEET_ID_HERE/edit)
+// 3. Tukar SPREADSHEET_ID di atas dengan ID anda
+// 4. Tukar TAHFIZ_LAT dan TAHFIZ_LNG dengan koordinat tahfiz anda
+// 5. Pergi Tools > Script Editor
+// 6. Padam semua kod dan ganti dengan kod di atas
+// 7. Klik Deploy > New deployment
+// 8. Pilih "Web app"
+// 9. Execute as: Me
+// 10. Who has access: Anyone
+// 11. Klik Deploy
+// 12. Copy Web App URL dan guna dalam config.js
+//
+// Akaun default:
+// Admin: admin@tahfiz.com / admin123
+// Guru: guru@tahfiz.com / guru123
+// ============================================

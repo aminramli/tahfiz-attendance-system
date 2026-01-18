@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Dashboard Kehadiran Guru">
+    <title>Dashboard - Kehadiran Tahfiz</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body class="user-page">
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-content">
+            <h1>Sistem Kehadiran Tahfiz</h1>
+            <button class="btn-icon" id="profileBtn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <circle cx="12" cy="8" r="4"/>
+                    <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- User Info Card -->
+        <div class="card user-info-card">
+            <div class="user-avatar">
+                <div class="avatar-circle">
+                    <span id="userInitials">AG</span>
+                </div>
+            </div>
+            <div class="user-details">
+                <h2 id="userName">Ahmad bin Abdullah</h2>
+                <p id="userEmail">ahmad@tahfiz.com</p>
+            </div>
+        </div>
+
+        <!-- Location Status Card -->
+        <div class="card location-status-card">
+            <div class="status-header">
+                <h3>Status Lokasi</h3>
+                <button class="btn-icon" id="refreshLocation">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="status-content" id="locationStatus">
+                <div class="status-icon loading">
+                    <div class="spinner"></div>
+                </div>
+                <p class="status-text">Mengesan lokasi...</p>
+                <p class="status-distance">--</p>
+            </div>
+        </div>
+
+        <!-- Google Map -->
+        <div class="card map-card">
+            <div id="map" class="map-container">
+                <!-- Google Map akan dipaparkan di sini -->
+            </div>
+            <div class="map-legend">
+                <div class="legend-item">
+                    <span class="legend-marker marker-pusat"></span>
+                    <span>Pusat Islam</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-marker marker-you"></span>
+                    <span>Lokasi Anda</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance Action Card -->
+        <div class="card attendance-card">
+            <h3>Kehadiran Hari Ini</h3>
+            <div class="attendance-info">
+                <div class="attendance-item">
+                    <span class="label">Masuk:</span>
+                    <span class="time" id="checkInTime">-- : --</span>
+                    <span class="status-badge" id="checkInStatus"></span>
+                </div>
+                <div class="attendance-item">
+                    <span class="label">Keluar:</span>
+                    <span class="time" id="checkOutTime">-- : --</span>
+                    <span class="status-badge" id="checkOutStatus"></span>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-success btn-block" id="checkInBtn" disabled>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M9 11l3 3L22 4"/>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                    </svg>
+                    <span>Check In</span>
+                </button>
+
+                <button class="btn btn-danger btn-block" id="checkOutBtn" disabled>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                    <span>Check Out</span>
+                </button>
+            </div>
+
+            <div class="info-message" id="infoMessage">
+                <p>Anda perlu berada dalam radius 200m dari Pusat Islam untuk check in/out.</p>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="card stats-card">
+            <h3>Statistik Bulan Ini</h3>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value" id="statPresent">--</div>
+                    <div class="stat-label">Hadir</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="statAbsent">--</div>
+                    <div class="stat-label">Tidak Hadir</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="statLate">--</div>
+                    <div class="stat-label">Lewat</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="statPercentage">--%</div>
+                    <div class="stat-label">Kehadiran</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="user-dashboard.html" class="nav-item active">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            <span>Home</span>
+        </a>
+        <a href="user-history.html" class="nav-item">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span>Sejarah</span>
+        </a>
+        <a href="#" class="nav-item" id="profileNav">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="8" r="4"/>
+                <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
+            </svg>
+            <span>Profil</span>
+        </a>
+    </nav>
+
+    <!-- Profile Modal -->
+    <div class="modal" id="profileModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Profil Pengguna</h2>
+                <button class="btn-close" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="profile-info">
+                    <p><strong>Nama:</strong> <span id="modalUserName">--</span></p>
+                    <p><strong>Email:</strong> <span id="modalUserEmail">--</span></p>
+                    <p><strong>Role:</strong> <span id="modalUserRole">Guru</span></p>
+                </div>
+                <button class="btn btn-secondary btn-block" id="logoutBtn">Log Keluar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts - Load in correct order -->
+    <!-- 1. Config (must be first) -->
+    <script src="js/config.js"></script>
+
+    <!-- 2. Core modules -->
+    <script src="js/auth.js"></script>
+    <script src="js/google-sheets.js"></script>
+    <script src="js/geolocation.js"></script>
+
+    <!-- 3. Google Maps API (with callback) -->
+    <script>
+        // Initialize Google Maps callback
+        function initMap() {
+            // Maps will be initialized by app.js
+            console.log('Google Maps API loaded');
+        }
+    </script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBGuEW3mKh9SpuQBpt2mbSofmjokjYED90&loading=async&callback=initMap"></script>
+
+    <!-- 4. Maps manager and main app (must load after Maps API) -->
+    <script src="js/google-maps.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

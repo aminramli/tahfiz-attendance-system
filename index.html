@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistem Kehadiran Tahfiz dengan Geolocation">
+    <title>Login - Sistem Kehadiran Tahfiz</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-box">
+            <div class="logo-section">
+                <div class="logo-placeholder">
+                    <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="40" cy="40" r="38" stroke="#4CAF50" stroke-width="4"/>
+                        <path d="M40 15 L40 40 L55 55" stroke="#4CAF50" stroke-width="4" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <h1>Sistem Kehadiran Tahfiz</h1>
+                <p class="subtitle">Geolocation-Based Attendance</p>
+            </div>
+
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="email">Email / ID Pengguna</label>
+                    <input
+                        type="text"
+                        id="email"
+                        name="email"
+                        placeholder="Masukkan email atau ID"
+                        required
+                        autocomplete="username"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Kata Laluan</label>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Masukkan kata laluan"
+                        required
+                        autocomplete="current-password"
+                    >
+                </div>
+
+                <div class="form-group checkbox-group">
+                    <label>
+                        <input type="checkbox" id="remember" name="remember">
+                        <span>Ingat saya</span>
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">
+                    <span>Log Masuk</span>
+                </button>
+
+                <div class="error-message" id="errorMessage" style="display: none;">
+                    <p></p>
+                </div>
+            </form>
+
+            <div class="login-footer">
+                <p>Lupa kata laluan? <a href="#" id="forgotPassword">Hubungi Admin</a></p>
+            </div>
+        </div>
+
+        <div class="demo-credentials">
+            <p><strong>Demo Login:</strong></p>
+            <p>Guru: <code>guru@tahfiz.com</code> / <code>guru123</code></p>
+            <p>Admin: <code>admin@tahfiz.com</code> / <code>admin123</code></p>
+        </div>
+    </div>
+
+    <!-- Scripts - Load config first, then auth -->
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+</body>
+</html>

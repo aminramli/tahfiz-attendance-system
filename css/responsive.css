@@ -1,0 +1,120 @@
+/* ==========================================
+   Responsive Stylesheet
+   Sistem Kehadiran Tahfiz
+   ========================================== */
+
+/* Tablet and below */
+@media (max-width: 768px) {
+    .main-content {
+        padding: 16px;
+    }
+
+    .card {
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .action-buttons {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .map-container {
+        height: 250px;
+    }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+    .app-header h1 {
+        font-size: 16px;
+    }
+
+    .main-content {
+        padding: 12px;
+    }
+
+    .card {
+        padding: 12px;
+        margin-bottom: 12px;
+        border-radius: 8px;
+    }
+
+    .card h3 {
+        font-size: 16px;
+    }
+
+    .user-info-card {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .avatar-circle {
+        width: 56px;
+        height: 56px;
+        font-size: 20px;
+    }
+
+    .user-details h2 {
+        font-size: 18px;
+    }
+
+    .map-container {
+        height: 200px;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .stat-item {
+        padding: 12px 8px;
+    }
+
+    .stat-value {
+        font-size: 24px;
+    }
+
+    .stat-label {
+        font-size: 12px;
+    }
+
+    .login-box {
+        padding: 24px 20px;
+    }
+
+    .modal-content {
+        margin: 10px;
+    }
+
+    .bottom-nav {
+        padding: 4px 0;
+    }
+
+    .nav-item {
+        padding: 6px 8px;
+        font-size: 11px;
+    }
+
+    .nav-item svg {
+        width: 20px;
+        height: 20px;
+    }
+}
+
+/* Large screens */
+@media (min-width: 1200px) {
+    .stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .map-container {
+        height: 400px;
+    }
+}
