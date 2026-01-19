@@ -56,14 +56,25 @@ const AuthManager = {
     },
 
     logout() {
-        sessionStorage.removeItem(CONFIG.STORAGE_KEYS.USER_DATA);
-        sessionStorage.removeItem(CONFIG.STORAGE_KEYS.AUTH_TOKEN);
+        try {
+            console.log('Logging out...');
 
-        if (!localStorage.getItem(CONFIG.STORAGE_KEYS.REMEMBER_ME)) {
-            localStorage.removeItem(CONFIG.STORAGE_KEYS.USER_DATA);
+            // Clear all session storage
+            sessionStorage.clear();
+
+            // Clear all local storage
+            localStorage.clear();
+
+            console.log('Storage cleared, redirecting...');
+
+            // Force redirect to login page using replace to prevent back button
+            window.location.replace('index.html');
+        } catch (error) {
+            console.error('Logout error:', error);
+            // Force redirect anyway
+            alert('Logout error, tetapi akan redirect ke login page');
+            window.location.replace('index.html');
         }
-
-        window.location.href = 'index.html';
     },
 
     isAuthenticated() {
@@ -104,13 +115,13 @@ const AuthManager = {
 
     protectPage(requiredRole = null) {
         if (!this.isAuthenticated()) {
-            window.location.href = '../index.html';
+            window.location.href = 'index.html';
             return false;
         }
 
         if (requiredRole) {
             const user = this.getCurrentUser();
-            if (user.role !== requiredRole) {
+            if (user && user.role !== requiredRole) {
                 this.redirectToDashboard(user.role);
                 return false;
             }
