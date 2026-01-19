@@ -80,8 +80,8 @@ const AuthManager = {
     },
 
     redirectToDashboard(role) {
-        if (role === CONFIG.USER_ROLES.ADMIN) {
-            window.location.href = 'user-dashboard.html';
+        if (role === 'admin' || role === CONFIG.USER_ROLES.ADMIN) {
+            window.location.href = 'admin-dashboard.html';
         } else {
             window.location.href = 'user-dashboard.html';
         }

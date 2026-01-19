@@ -27,7 +27,10 @@
       "Bash(curl -s \"https://script.google.com/macros/s/AKfycbzJH-uNLjl3s_0QU-SUBBZbUqPlLLUwEn0ISD8QFMe7cRyK2vD7gywla4NQkRiecA5A/exec?action=login\")",
       "Bash(find \"c:\\Users\\Amin Ramli\\tahfiz-attendance-system\" -type f ( -name \"*.html\" -o -name \"*.js\" ) -exec grep -l \"AIzaSy\" {} ;)",
       "Bash(git clone https://github.com/aminramli/kehadiranpeperiksaansas.git kehadiranpeperiksaansas-backup)",
-      "Bash(git log --all --full-history --pretty=format:\"%h %s %ai\")"
+      "Bash(git log --all --full-history --pretty=format:\"%h %s %ai\")",
+      "Bash(git commit -m \"$(cat <<''EOF''\nInitial commit: Sistem Kehadiran Tahfiz\n\nFull-stack GPS-based attendance system for Islamic Tahfiz centers with real-time location tracking and Google Maps integration.\n\nFeatures:\n- GPS-based check-in/check-out with 200m radius validation\n- Google Maps integration with real-time location display\n- User authentication and role-based access (Admin & Guru)\n- Attendance history with date range filtering\n- Real-time attendance statistics\n- Google Sheets backend integration\n- Mobile-responsive design\n\nTech Stack:\n- Frontend: HTML5, CSS3, Vanilla JavaScript\n- Backend: Google Apps Script\n- Database: Google Sheets\n- Maps: Google Maps JavaScript API\n- Geolocation: HTML5 Geolocation API\n\nPages:\n- Login page with authentication\n- User dashboard with GPS tracking\n- Attendance history with filters\n- Profile management\n\n🤖 Generated with Claude Code\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(gh repo create tahfiz-attendance-system --public --source=. --remote=origin --push)",
+      "Bash(find . -name \"*.html\" -exec grep -l \"href=\"\"/\\|src=\"\"/\" {} ;)"
     ],
     "deny": [],
     "ask": []

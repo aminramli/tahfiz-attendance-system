@@ -209,8 +209,18 @@ async function handleCheckIn() {
             const result = await GoogleSheetsAPI.checkIn(AppState.user.id, locationData);
 
             if (result.success) {
+                AppState.hasCheckedInToday = true;
+                AppState.hasCheckedOutToday = false;
                 await loadTodayAttendance();
-                alert('Check in berjaya!');
+
+                // Re-enable buttons and update UI
+                DOM.checkInBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>Check In</span>';
+
+                // Force update buttons state
+                const currentLocation = GeoLocation.getLocationData();
+                updateCheckInOutButtons(currentLocation);
+
+                alert('✓ Check in berjaya! Anda kini boleh check out.');
             } else {
                 alert(result.message || 'Ralat check in. Sila cuba lagi.');
                 DOM.checkInBtn.disabled = false;
@@ -241,8 +251,17 @@ async function handleCheckOut() {
             const result = await GoogleSheetsAPI.checkOut(AppState.user.id, locationData);
 
             if (result.success) {
+                AppState.hasCheckedOutToday = true;
                 await loadTodayAttendance();
-                alert('Check out berjaya!');
+
+                // Re-enable buttons and update UI
+                DOM.checkOutBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 6L6 18M6 6l12 12"/></svg><span>Check Out</span>';
+
+                // Force update buttons state
+                const currentLocation = GeoLocation.getLocationData();
+                updateCheckInOutButtons(currentLocation);
+
+                alert('✓ Check out berjaya! Terima kasih.');
             } else {
                 alert(result.message || 'Ralat check out. Sila cuba lagi.');
                 DOM.checkOutBtn.disabled = false;

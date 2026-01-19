@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Admin Dashboard">
+    <title>Admin Dashboard - Kehadiran Tahfiz</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <style>
+        .admin-tabs {
+            display: flex;
+            gap: 8px;
+            background: white;
+            padding: 8px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+        .admin-tab {
+            padding: 12px 20px;
+            border: none;
+            background: transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            color: #757575;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+        }
+        .admin-tab.active {
+            background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .stat-card h4 {
+            font-size: 14px;
+            color: #757575;
+            margin-bottom: 8px;
+        }
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #4CAF50;
+        }
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #E0E0E0;
+        }
+        th {
+            background: #F5F5F5;
+            font-weight: 600;
+            color: #212121;
+        }
+        tr:hover {
+            background: #F9F9F9;
+        }
+        .btn-action {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            margin-right: 4px;
+        }
+        .btn-edit {
+            background: #2196F3;
+            color: white;
+        }
+        .btn-delete {
+            background: #f44336;
+            color: white;
+        }
+        .modal-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .form-row {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .form-row label {
+            font-weight: 500;
+            font-size: 14px;
+        }
+        .form-row input,
+        .form-row select {
+            padding: 10px;
+            border: 2px solid #E0E0E0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .form-row input:focus,
+        .form-row select:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        .filter-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .filter-bar input,
+        .filter-bar select {
+            padding: 10px;
+            border: 2px solid #E0E0E0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-active {
+            background: #E8F5E9;
+            color: #2E7D32;
+        }
+        .badge-inactive {
+            background: #FFEBEE;
+            color: #C62828;
+        }
+        .badge-admin {
+            background: #E3F2FD;
+            color: #1565C0;
+        }
+        .badge-guru {
+            background: #F3E5F5;
+            color: #6A1B9A;
+        }
+        @media (max-width: 768px) {
+            .admin-tabs {
+                overflow-x: auto;
+            }
+            table {
+                font-size: 13px;
+            }
+            .filter-bar {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body class="user-page">
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-content">
+            <h1>Admin Dashboard</h1>
+            <button class="btn-icon" id="profileBtn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <circle cx="12" cy="8" r="4"/>
+                    <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Admin Tabs -->
+        <div class="admin-tabs">
+            <button class="admin-tab active" data-tab="overview">
+                <span>📊 Overview</span>
+            </button>
+            <button class="admin-tab" data-tab="attendance">
+                <span>📋 Kehadiran Hari Ini</span>
+            </button>
+            <button class="admin-tab" data-tab="users">
+                <span>👥 Pengurusan Pengguna</span>
+            </button>
+            <button class="admin-tab" data-tab="reports">
+                <span>📈 Laporan</span>
+            </button>
+        </div>
+
+        <!-- Overview Tab -->
+        <div class="tab-content active" id="overview">
+            <div class="stats-overview">
+                <div class="stat-card">
+                    <h4>Hadir Hari Ini</h4>
+                    <div class="value" id="statTodayPresent">0</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Belum Check Out</h4>
+                    <div class="value" id="statNotCheckedOut">0</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Jumlah Pengguna</h4>
+                    <div class="value" id="statTotalUsers">0</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Kehadiran Bulan Ini</h4>
+                    <div class="value" id="statMonthlyAttendance">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance Tab -->
+        <div class="tab-content" id="attendance">
+            <div class="card">
+                <h3>Kehadiran Hari Ini</h3>
+                <div class="filter-bar">
+                    <input type="date" id="filterDate" style="flex: 1;">
+                    <button class="btn btn-primary" id="loadAttendanceBtn">
+                        <span>Cari</span>
+                    </button>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nama</th>
+                                <th>Check In</th>
+                                <th>Check Out</th>
+                                <th>Durasi</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendanceTableBody">
+                            <tr>
+                                <td colspan="5" style="text-align: center; color: #757575;">
+                                    Memuatkan data...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Tab -->
+        <div class="tab-content" id="users">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3>Senarai Pengguna</h3>
+                    <button class="btn btn-primary" id="addUserBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        <span>Tambah Pengguna</span>
+                    </button>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nama</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Tindakan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <tr>
+                                <td colspan="5" style="text-align: center; color: #757575;">
+                                    Memuatkan data...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reports Tab -->
+        <div class="tab-content" id="reports">
+            <div class="card">
+                <h3>Laporan Kehadiran</h3>
+                <div class="filter-bar">
+                    <select id="reportMonth">
+                        <option value="">Pilih Bulan</option>
+                        <option value="01">Januari</option>
+                        <option value="02">Februari</option>
+                        <option value="03">Mac</option>
+                        <option value="04">April</option>
+                        <option value="05">Mei</option>
+                        <option value="06">Jun</option>
+                        <option value="07">Julai</option>
+                        <option value="08">Ogos</option>
+                        <option value="09">September</option>
+                        <option value="10">Oktober</option>
+                        <option value="11">November</option>
+                        <option value="12">Disember</option>
+                    </select>
+                    <select id="reportYear"></select>
+                    <button class="btn btn-primary" id="generateReportBtn">
+                        <span>Jana Laporan</span>
+                    </button>
+                    <button class="btn btn-success" id="exportExcelBtn">
+                        <span>Export Excel</span>
+                    </button>
+                </div>
+                <div id="reportContent">
+                    <p style="text-align: center; color: #757575; padding: 40px;">
+                        Pilih bulan dan tahun untuk jana laporan
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add/Edit User Modal -->
+    <div class="modal" id="userModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="userModalTitle">Tambah Pengguna</h2>
+                <button class="btn-close" id="closeUserModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form class="modal-form" id="userForm">
+                    <input type="hidden" id="editUserId">
+                    <div class="form-row">
+                        <label for="userName">Nama Penuh</label>
+                        <input type="text" id="userName" placeholder="Nama pengguna" required>
+                    </div>
+                    <div class="form-row">
+                        <label for="userEmail">Email</label>
+                        <input type="email" id="userEmail" placeholder="email@contoh.com" required>
+                    </div>
+                    <div class="form-row">
+                        <label for="userPassword">Kata Laluan</label>
+                        <input type="password" id="userPassword" placeholder="Minimum 6 aksara">
+                        <small style="color: #757575; font-size: 12px;" id="passwordHint">
+                            Kosongkan jika tidak mahu tukar kata laluan
+                        </small>
+                    </div>
+                    <div class="form-row">
+                        <label for="userRole">Role</label>
+                        <select id="userRole" required>
+                            <option value="">Pilih Role</option>
+                            <option value="guru">Guru</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label for="userStatus">Status</label>
+                        <select id="userStatus" required>
+                            <option value="Active">Aktif</option>
+                            <option value="Inactive">Tidak Aktif</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-block">
+                        <span>Simpan</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div class="modal" id="profileModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Profil Admin</h2>
+                <button class="btn-close" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="profile-info">
+                    <p><strong>Nama:</strong> <span id="modalUserName">--</span></p>
+                    <p><strong>Email:</strong> <span id="modalUserEmail">--</span></p>
+                    <p><strong>Role:</strong> <span>Admin</span></p>
+                </div>
+                <button class="btn btn-secondary btn-block" id="logoutBtn">Log Keluar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/google-sheets.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>
