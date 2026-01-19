@@ -143,6 +143,34 @@ function setupEventListeners() {
     // Reports
     DOM.generateReportBtn.addEventListener('click', generateReport);
     DOM.exportExcelBtn.addEventListener('click', exportToExcel);
+
+    // Bottom navigation
+    const bottomNavItems = document.querySelectorAll('.bottom-nav .nav-item[data-tab-trigger]');
+    bottomNavItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const tabName = item.dataset.tabTrigger;
+
+            // Find and click the corresponding top tab
+            const topTab = document.querySelector(`.admin-tab[data-tab="${tabName}"]`);
+            if (topTab) {
+                topTab.click();
+            }
+
+            // Update bottom nav active state
+            bottomNavItems.forEach(nav => nav.classList.remove('active'));
+            item.classList.add('active');
+        });
+    });
+
+    // Profile nav from bottom
+    const profileNavBottom = document.getElementById('profileNavBottom');
+    if (profileNavBottom) {
+        profileNavBottom.addEventListener('click', (e) => {
+            e.preventDefault();
+            openProfileModal();
+        });
+    }
 }
 
 function setupReportFilters() {

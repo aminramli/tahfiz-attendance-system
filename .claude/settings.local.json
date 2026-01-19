@@ -1,36 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dir /b \"c:\\Users\\Amin Ramli\\tahfiz-attendance-system\")",
-      "Bash(curl -s \"https://script.google.com/macros/s/AKfycbzXjy8-_HoeI5vV9gERNV4THnGYeSq7guPDRgCTQ0H9zRe0d-DVY9RcdyB9Zqg7MoYX/exec?action=login\")",
-      "Bash(curl -s \"https://script.google.com/macros/s/AKfycbzKZ4JMBMufFv0_tQW6n2C0ja2F4T6qkwfWQ1MzE7rV0xaZeTWTy_CbAIw6eeL1A8RX/exec?action=login\")",
-      "Bash(curl -X POST \"https://script.google.com/macros/s/AKfycbzKZ4JMBMufFv0_tQW6n2C0ja2F4T6qkwfWQ1MzE7rV0xaZeTWTy_CbAIw6eeL1A8RX/exec?action=login\" -H \"Content-Type: application/json\" -d '{\"\"email\"\":\"\"guru@tahfiz.com\"\",\"\"password\"\":\"\"guru123\"\"}' -s)",
-      "Bash(curl -s \"https://script.google.com/macros/s/AKfycbwhPefKYI1s9mHGagcU4DwpKoTwcJq81ZwA99aB2cuvJX_tZMK8AFdALopMQhk_UMXJ/exec?action=login&email=guru@tahfiz.com&password=guru123\")",
-      "Bash(curl -L -s \"https://script.google.com/macros/s/AKfycbwhPefKYI1s9mHGagcU4DwpKoTwcJq81ZwA99aB2cuvJX_tZMK8AFdALopMQhk_UMXJ/exec?action=login&email=guru@tahfiz.com&password=guru123\")",
-      "Bash(git config --global user.email \"aminramli@github.com\")",
-      "Bash(git config --global user.name \"Amin Ramli\")",
-      "Bash(git init)",
-      "Bash(git add .)",
-      "Bash(git commit -m \"Initial commit: Sistem Kehadiran Tahfiz - Full stack attendance system with GPS tracking\n\nFeatures:\n- Google Apps Script backend with Google Sheets database\n- Google Maps integration with geolocation\n- Role-based access (Admin & Guru)\n- Real-time attendance tracking with GPS validation\n- Check-in/Check-out within 200m radius\n- Admin dashboard for user management\n- Attendance history and statistics\n- Responsive design for mobile & desktop\n\nTech Stack:\n- Frontend: HTML5, CSS3, Vanilla JavaScript\n- Backend: Google Apps Script\n- Database: Google Sheets\n- Maps: Google Maps JavaScript API\n- Authentication: Session-based with localStorage support\")",
-      "Bash(git branch -M main)",
-      "Bash(git remote add origin https://github.com/aminramli/kehadiranpeperiksaansas.git)",
-      "Bash(git push -u origin main)",
-      "Bash(git pull origin main --allow-unrelated-histories)",
-      "Bash(git checkout --ours .)",
-      "Bash(git commit -m \"Merge: Update dengan Sistem Kehadiran Tahfiz yang lengkap\")",
-      "Bash(git push origin main)",
-      "Bash(git reset --hard dbebb5b)",
-      "Bash(git push origin main --force)",
-      "Bash(git remote remove origin)",
-      "Bash(git remote add origin https://github.com/aminramli/tahfiz-attendance-system.git)",
-      "Read(//c/Users/Amin Ramli/**)",
-      "Bash(curl -s \"https://script.google.com/macros/s/AKfycbzJH-uNLjl3s_0QU-SUBBZbUqPlLLUwEn0ISD8QFMe7cRyK2vD7gywla4NQkRiecA5A/exec?action=login\")",
-      "Bash(find \"c:\\Users\\Amin Ramli\\tahfiz-attendance-system\" -type f ( -name \"*.html\" -o -name \"*.js\" ) -exec grep -l \"AIzaSy\" {} ;)",
-      "Bash(git clone https://github.com/aminramli/kehadiranpeperiksaansas.git kehadiranpeperiksaansas-backup)",
-      "Bash(git log --all --full-history --pretty=format:\"%h %s %ai\")",
-      "Bash(git commit -m \"$(cat <<''EOF''\nInitial commit: Sistem Kehadiran Tahfiz\n\nFull-stack GPS-based attendance system for Islamic Tahfiz centers with real-time location tracking and Google Maps integration.\n\nFeatures:\n- GPS-based check-in/check-out with 200m radius validation\n- Google Maps integration with real-time location display\n- User authentication and role-based access (Admin & Guru)\n- Attendance history with date range filtering\n- Real-time attendance statistics\n- Google Sheets backend integration\n- Mobile-responsive design\n\nTech Stack:\n- Frontend: HTML5, CSS3, Vanilla JavaScript\n- Backend: Google Apps Script\n- Database: Google Sheets\n- Maps: Google Maps JavaScript API\n- Geolocation: HTML5 Geolocation API\n\nPages:\n- Login page with authentication\n- User dashboard with GPS tracking\n- Attendance history with filters\n- Profile management\n\n🤖 Generated with Claude Code\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(gh repo create tahfiz-attendance-system --public --source=. --remote=origin --push)",
-      "Bash(find . -name \"*.html\" -exec grep -l \"href=\"\"/\\|src=\"\"/\" {} ;)"
+      "Bash(git commit -m \"Add bottom navigation to Admin Dashboard\n\n- Added responsive bottom navigation bar\n- 4 navigation items (Overview, Kehadiran, Pengguna, Profil)\n- Synced with top tabs navigation\n- Mobile-friendly design\n- Active state management\n- Profile modal trigger from bottom nav\n\n🤖 Generated with Claude Code\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")"
     ],
     "deny": [],
     "ask": []
