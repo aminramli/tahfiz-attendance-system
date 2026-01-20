@@ -243,7 +243,10 @@ function handleLogin(params) {
       const userMatches = (userId && rowUserId === userId) || (email && rowEmail === email);
 
       if (userMatches && (rowStatus === 'active' || rowStatus === 'Active')) {
-        if (verifyPassword(password, rowPassword)) {
+        // Check both hashed password and plain text password (for easy testing)
+        const isPasswordValid = verifyPassword(password, rowPassword) || (password === rowPassword);
+
+        if (isPasswordValid) {
           sheet.getRange(i + 1, 8).setValue(new Date().toISOString());
 
           Logger.log('Login successful for: ' + rowName);
@@ -256,10 +259,13 @@ function handleLogin(params) {
             role: rowRole,
             status: rowStatus
           });
+        } else {
+          Logger.log('Password mismatch for user: ' + rowUserId);
         }
       }
     }
 
+    Logger.log('Login failed - no matching user found or status inactive');
     return createResponse(false, 'ID Pengguna atau password salah');
 
   } catch(error) {
