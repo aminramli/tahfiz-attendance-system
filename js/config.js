@@ -5,7 +5,7 @@
 
 const CONFIG = {
     // Google Apps Script Web App URL
-    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzJH-uNLjl3s_0QU-SUBBZbUqPlLLUwEn0ISD8QFMe7cRyK2vD7gywla4NQkRiecA5A/exec',
+    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzvWosU7Olg_U2MABTEB-LeLDyWlWhJHk3VTMCRXw_hzzpvFDbH45h59TtG_W4Xpm36/exec',
 
     // Google Sheets ID
     SPREADSHEET_ID: '1VkJxBkwrPIZXjUmzvtSwRq7XPYRbU2cTYquB-gJl6qw',

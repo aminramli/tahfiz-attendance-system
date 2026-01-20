@@ -13,6 +13,7 @@ const SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID_HERE'; // Ganti dengan ID Google She
 const SHEET_USERS = 'Users';
 const SHEET_ATTENDANCE = 'Attendance';
 const SHEET_SETTINGS = 'Settings';
+const SHEET_NOTES = 'Notes';
 
 // GPS Settings (Koordinat Tahfiz)
 const TAHFIZ_LAT = 3.1390; // Ganti dengan koordinat tahfiz anda
@@ -20,24 +21,60 @@ const TAHFIZ_LNG = 101.6869;
 const ALLOWED_RADIUS = 200; // 200 meter radius
 
 /**
- * Serve HTML pages
+ * Handle GET requests (API endpoints)
+ * Frontend menggunakan GET request dengan query parameters
  */
 function doGet(e) {
-  const page = e.parameter.page || 'login';
+  try {
+    const action = e.parameter.action;
 
-  if (page === 'dashboard') {
-    return HtmlService.createHtmlOutputFromFile('dashboard')
-      .setTitle('Dashboard Kehadiran Tahfiz')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    // Jika tiada action, return error
+    if (!action) {
+      return createResponse(false, 'Action parameter diperlukan');
+    }
+
+    // Handle different actions
+    switch(action) {
+      case 'login':
+        return handleLogin(e.parameter);
+      case 'checkIn':
+        return handleCheckIn(e.parameter);
+      case 'checkOut':
+        return handleCheckOut(e.parameter);
+      case 'getAttendance':
+        return getAttendanceRecords(e.parameter);
+      case 'getUserStats':
+        return getUserStats(e.parameter);
+      case 'addUser':
+        return addUser(e.parameter);
+      case 'updateUser':
+        return updateUser(e.parameter);
+      case 'deleteUser':
+        return deleteUser(e.parameter);
+      case 'getAllUsers':
+        return getAllUsers();
+      case 'getTodayAttendance':
+        return getTodayAttendance();
+      case 'getUser':
+        return getUser(e.parameter);
+      case 'submitNote':
+        return submitNote(e.parameter);
+      case 'getAllNotes':
+        return getAllNotes();
+      case 'getNotesByUser':
+        return getNotesByUser(e.parameter);
+      default:
+        return createResponse(false, 'Invalid action: ' + action);
+    }
+  } catch (error) {
+    Logger.log('Error in doGet: ' + error.message);
+    Logger.log('Stack: ' + error.stack);
+    return createResponse(false, 'Error: ' + error.message);
   }
-
-  return HtmlService.createHtmlOutputFromFile('login')
-    .setTitle('Login - Sistem Kehadiran')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 /**
- * Handle POST requests (API endpoints)
+ * Handle POST requests (for backwards compatibility)
  */
 function doPost(e) {
   try {
@@ -113,20 +150,29 @@ function getSheet(sheetName) {
 }
 
 /**
+ * Generate 6 digit user ID
+ */
+function generateUserId() {
+  // Generate random 6 digit number
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+/**
  * Initialize sheet with headers
  */
 function initializeSheet(sheet, sheetName) {
   if (sheetName === SHEET_USERS) {
-    sheet.appendRow(['ID', 'Email', 'Password', 'Nama', 'Role', 'Status', 'Created', 'LastLogin']);
+    // Column structure: UserID (6 digit) | Email | Password | Nama | Role | Status | Created | LastLogin
+    sheet.appendRow(['UserID', 'Email', 'Password', 'Nama', 'Role', 'Status', 'Created', 'LastLogin']);
 
     // Add default admin account
     const adminPassword = hashPassword('admin123');
     sheet.appendRow([
-      generateId(),
-      'admin@tahfiz.com',
+      '999999',  // Fixed admin ID
+      'admin@mrsmatra.edu.my',
       adminPassword,
       'Administrator',
-      'Admin',
+      'admin',
       'Active',
       new Date().toISOString(),
       ''
@@ -135,11 +181,24 @@ function initializeSheet(sheet, sheetName) {
     // Add default guru account
     const guruPassword = hashPassword('guru123');
     sheet.appendRow([
-      generateId(),
-      'guru@tahfiz.com',
+      '100001',  // Fixed guru ID
+      'guru@mrsmatra.edu.my',
       guruPassword,
       'Guru Contoh',
-      'Guru',
+      'guru',
+      'Active',
+      new Date().toISOString(),
+      ''
+    ]);
+
+    // Add sample teacher accounts
+    const teacher2Password = hashPassword('guru123');
+    sheet.appendRow([
+      '100002',
+      'ahmad@mrsmatra.edu.my',
+      teacher2Password,
+      'Ahmad bin Abdullah',
+      'guru',
       'Active',
       new Date().toISOString(),
       ''
@@ -165,9 +224,24 @@ function initializeSheet(sheet, sheetName) {
 
   } else if (sheetName === SHEET_SETTINGS) {
     sheet.appendRow(['Key', 'Value', 'Description']);
-    sheet.appendRow(['tahfiz_lat', TAHFIZ_LAT, 'Latitude Tahfiz']);
-    sheet.appendRow(['tahfiz_lng', TAHFIZ_LNG, 'Longitude Tahfiz']);
+    sheet.appendRow(['tahfiz_lat', TAHFIZ_LAT, 'Latitude MRSM Matra']);
+    sheet.appendRow(['tahfiz_lng', TAHFIZ_LNG, 'Longitude MRSM Matra']);
     sheet.appendRow(['allowed_radius', ALLOWED_RADIUS, 'Radius dibenarkan (meter)']);
+
+  } else if (sheetName === SHEET_NOTES) {
+    sheet.appendRow([
+      'ID',
+      'UserID',
+      'UserName',
+      'Email',
+      'NoteType',
+      'NoteDate',
+      'NoteReason',
+      'SubmittedDate',
+      'Status',
+      'AdminResponse',
+      'AdminRespondedDate'
+    ]);
   }
 }
 
@@ -196,41 +270,60 @@ function verifyPassword(password, hash) {
 }
 
 /**
- * Handle login
+ * Handle login - Support both userId (6 digit) and email
  */
 function handleLogin(params) {
+  const userId = params.userId;
   const email = params.email;
   const password = params.password;
 
-  if (!email || !password) {
-    return createResponse(false, 'Email dan password diperlukan');
+  // Must have either userId or email, and password
+  if ((!userId && !email) || !password) {
+    return createResponse(false, 'ID Pengguna/Email dan password diperlukan');
   }
 
   const sheet = getSheet(SHEET_USERS);
   const data = sheet.getDataRange().getValues();
 
+  Logger.log('Login attempt - userId: ' + userId + ', email: ' + email);
+
   // Skip header row
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
+    const rowUserId = row[0]; // Column A: UserID (6 digit)
+    const rowEmail = row[1];  // Column B: Email
+    const rowPassword = row[2]; // Column C: Password
+    const rowName = row[3];   // Column D: Name
+    const rowRole = row[4];   // Column E: Role
+    const rowStatus = row[5]; // Column F: Status
 
-    if (row[1] === email && row[5] === 'Active') {
+    // Check if user matches (by userId or email) and is Active
+    const userMatches = (userId && rowUserId === userId) || (email && rowEmail === email);
+
+    if (userMatches && rowStatus === 'Active') {
       // Verify password
-      if (verifyPassword(password, row[2])) {
-        // Update last login
+      if (verifyPassword(password, rowPassword)) {
+        // Update last login (Column H)
         sheet.getRange(i + 1, 8).setValue(new Date().toISOString());
 
+        Logger.log('Login successful for: ' + rowName);
+
         return createResponse(true, 'Login berjaya', {
-          id: row[0],
-          email: row[1],
-          name: row[3],
-          role: row[4],
-          status: row[5]
+          id: rowUserId,
+          userId: rowUserId,
+          email: rowEmail || '',
+          name: rowName,
+          role: rowRole,
+          status: rowStatus
         });
+      } else {
+        Logger.log('Password mismatch for user: ' + rowUserId);
       }
     }
   }
 
-  return createResponse(false, 'Email atau password salah');
+  Logger.log('Login failed - user not found or password incorrect');
+  return createResponse(false, 'ID Pengguna atau password salah');
 }
 
 /**
@@ -238,14 +331,14 @@ function handleLogin(params) {
  */
 function calculateDistance(lat1, lon1, lat2, lon2) {
   const R = 6371e3; // Earth radius in meters
-  const Æ1 = lat1 * Math.PI / 180;
-  const Æ2 = lat2 * Math.PI / 180;
-  const ”Æ = (lat2 - lat1) * Math.PI / 180;
-  const ”» = (lon2 - lon1) * Math.PI / 180;
+  const ï¿½1 = lat1 * Math.PI / 180;
+  const ï¿½2 = lat2 * Math.PI / 180;
+  const ï¿½ï¿½ = (lat2 - lat1) * Math.PI / 180;
+  const ï¿½ï¿½ = (lon2 - lon1) * Math.PI / 180;
 
-  const a = Math.sin(”Æ/2) * Math.sin(”Æ/2) +
-            Math.cos(Æ1) * Math.cos(Æ2) *
-            Math.sin(”»/2) * Math.sin(”»/2);
+  const a = Math.sin(ï¿½ï¿½/2) * Math.sin(ï¿½ï¿½/2) +
+            Math.cos(ï¿½1) * Math.cos(ï¿½2) *
+            Math.sin(ï¿½ï¿½/2) * Math.sin(ï¿½ï¿½/2);
 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 
@@ -268,118 +361,180 @@ function verifyLocation(lat, lng) {
  * Handle check-in
  */
 function handleCheckIn(params) {
-  const userId = params.userId;
-  const userName = params.userName;
-  const email = params.email;
-  const lat = parseFloat(params.lat);
-  const lng = parseFloat(params.lng);
+  try {
+    const userId = params.userId;
+    // Parse latitude dan longitude - support both naming conventions
+    const lat = parseFloat(params.latitude || params.lat);
+    const lng = parseFloat(params.longitude || params.lng);
 
-  if (!userId || !lat || !lng) {
-    return createResponse(false, 'Data tidak lengkap');
-  }
+    Logger.log('CheckIn params: ' + JSON.stringify(params));
+    Logger.log('Parsed lat: ' + lat + ', lng: ' + lng);
 
-  // Verify location
-  const locationCheck = verifyLocation(lat, lng);
-
-  if (!locationCheck.valid) {
-    return createResponse(false,
-      `Anda berada ${locationCheck.distance}m dari tahfiz. Sila berada dalam radius ${locationCheck.maxDistance}m`
-    );
-  }
-
-  const sheet = getSheet(SHEET_ATTENDANCE);
-  const today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
-
-  // Check if already checked in today
-  const data = sheet.getDataRange().getValues();
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][1] === userId && data[i][4] === today) {
-      return createResponse(false, 'Anda sudah check-in hari ini');
+    if (!userId) {
+      return createResponse(false, 'User ID diperlukan');
     }
+
+    if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+      return createResponse(false, 'Koordinat GPS tidak lengkap atau tidak sah. Lat: ' + lat + ', Lng: ' + lng);
+    }
+
+    // Get user info
+    const userSheet = getSheet(SHEET_USERS);
+    const userData = userSheet.getDataRange().getValues();
+    let userName = 'Unknown';
+    let email = 'unknown@email.com';
+
+    for (let i = 1; i < userData.length; i++) {
+      if (userData[i][0] === userId) {
+        userName = userData[i][3]; // Name column
+        email = userData[i][1];    // Email column
+        break;
+      }
+    }
+
+    // Verify location
+    const locationCheck = verifyLocation(lat, lng);
+
+    if (!locationCheck.valid) {
+      return createResponse(false,
+        `Anda berada ${locationCheck.distance}m dari tahfiz. Sila berada dalam radius ${locationCheck.maxDistance}m`
+      );
+    }
+
+    const sheet = getSheet(SHEET_ATTENDANCE);
+    const today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+
+    // Check if already checked in today
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][1] === userId && data[i][4] === today) {
+        return createResponse(false, 'Anda sudah check-in hari ini');
+      }
+    }
+
+    // Determine status based on time
+    const now = new Date();
+    const timeString = Utilities.formatDate(now, Session.getScriptTimeZone(), 'HH:mm:ss');
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const totalMinutes = hours * 60 + minutes;
+    const checkInLimit = 8 * 60 + 15; // 08:15
+
+    let status = 'Hadir';
+    if (totalMinutes > checkInLimit) {
+      status = 'Lewat';
+    }
+
+    // Add check-in record
+    sheet.appendRow([
+      generateId(),
+      userId,
+      userName,
+      email,
+      today,
+      timeString,
+      '', // CheckOut (empty)
+      lat,
+      lng,
+      '', // CheckOutLat (empty)
+      '', // CheckOutLng (empty)
+      '', // Duration (empty)
+      status,
+      'Check-in: ' + locationCheck.distance + 'm dari tahfiz'
+    ]);
+
+    Logger.log('Check-in successful for user: ' + userName);
+
+    return createResponse(true, 'Check-in berjaya! Jarak: ' + locationCheck.distance + 'm', {
+      checkInTime: timeString,
+      distance: locationCheck.distance,
+      status: status,
+      date: today,
+      userName: userName,
+      email: email
+    });
+  } catch (error) {
+    Logger.log('Error in handleCheckIn: ' + error.message);
+    Logger.log('Stack: ' + error.stack);
+    return createResponse(false, 'Error check-in: ' + error.message);
   }
-
-  // Add check-in record
-  const now = new Date();
-  const timeString = Utilities.formatDate(now, Session.getScriptTimeZone(), 'HH:mm:ss');
-
-  sheet.appendRow([
-    generateId(),
-    userId,
-    userName,
-    email,
-    today,
-    timeString,
-    '', // CheckOut (empty)
-    lat,
-    lng,
-    '', // CheckOutLat (empty)
-    '', // CheckOutLng (empty)
-    '', // Duration (empty)
-    'Present',
-    'Check-in: ' + locationCheck.distance + 'm dari tahfiz'
-  ]);
-
-  return createResponse(true, 'Check-in berjaya! Jarak: ' + locationCheck.distance + 'm', {
-    checkInTime: timeString,
-    distance: locationCheck.distance
-  });
 }
 
 /**
  * Handle check-out
  */
 function handleCheckOut(params) {
-  const userId = params.userId;
-  const lat = parseFloat(params.lat);
-  const lng = parseFloat(params.lng);
+  try {
+    const userId = params.userId;
+    // Parse latitude dan longitude - support both naming conventions
+    const lat = parseFloat(params.latitude || params.lat);
+    const lng = parseFloat(params.longitude || params.lng);
 
-  if (!userId || !lat || !lng) {
-    return createResponse(false, 'Data tidak lengkap');
-  }
+    Logger.log('CheckOut params: ' + JSON.stringify(params));
+    Logger.log('Parsed lat: ' + lat + ', lng: ' + lng);
 
-  // Verify location
-  const locationCheck = verifyLocation(lat, lng);
-
-  if (!locationCheck.valid) {
-    return createResponse(false,
-      `Anda berada ${locationCheck.distance}m dari tahfiz. Sila berada dalam radius ${locationCheck.maxDistance}m`
-    );
-  }
-
-  const sheet = getSheet(SHEET_ATTENDANCE);
-  const today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
-  const data = sheet.getDataRange().getValues();
-
-  // Find today's check-in record
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][1] === userId && data[i][4] === today && data[i][6] === '') {
-      const now = new Date();
-      const timeString = Utilities.formatDate(now, Session.getScriptTimeZone(), 'HH:mm:ss');
-
-      // Calculate duration
-      const checkInTime = new Date(today + ' ' + data[i][5]);
-      const checkOutTime = now;
-      const durationMs = checkOutTime - checkInTime;
-      const hours = Math.floor(durationMs / 3600000);
-      const minutes = Math.floor((durationMs % 3600000) / 60000);
-      const duration = hours + 'h ' + minutes + 'm';
-
-      // Update check-out
-      sheet.getRange(i + 1, 7).setValue(timeString); // CheckOut
-      sheet.getRange(i + 1, 10).setValue(lat); // CheckOutLat
-      sheet.getRange(i + 1, 11).setValue(lng); // CheckOutLng
-      sheet.getRange(i + 1, 12).setValue(duration); // Duration
-      sheet.getRange(i + 1, 14).setValue(data[i][13] + ' | Check-out: ' + locationCheck.distance + 'm'); // Notes
-
-      return createResponse(true, 'Check-out berjaya! Durasi: ' + duration, {
-        checkOutTime: timeString,
-        duration: duration,
-        distance: locationCheck.distance
-      });
+    if (!userId) {
+      return createResponse(false, 'User ID diperlukan');
     }
-  }
 
-  return createResponse(false, 'Tiada rekod check-in untuk hari ini');
+    if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+      return createResponse(false, 'Koordinat GPS tidak lengkap atau tidak sah');
+    }
+
+    // Verify location
+    const locationCheck = verifyLocation(lat, lng);
+
+    if (!locationCheck.valid) {
+      return createResponse(false,
+        `Anda berada ${locationCheck.distance}m dari tahfiz. Sila berada dalam radius ${locationCheck.maxDistance}m`
+      );
+    }
+
+    const sheet = getSheet(SHEET_ATTENDANCE);
+    const today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    const data = sheet.getDataRange().getValues();
+
+    // Find today's check-in record
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][1] === userId && data[i][4] === today && data[i][6] === '') {
+        const now = new Date();
+        const timeString = Utilities.formatDate(now, Session.getScriptTimeZone(), 'HH:mm:ss');
+
+        // Calculate duration
+        const checkInTime = new Date(today + ' ' + data[i][5]);
+        const checkOutTime = now;
+        const durationMs = checkOutTime - checkInTime;
+        const hours = Math.floor(durationMs / 3600000);
+        const minutes = Math.floor((durationMs % 3600000) / 60000);
+        const duration = hours + 'h ' + minutes + 'm';
+
+        // Update check-out
+        sheet.getRange(i + 1, 7).setValue(timeString); // CheckOut (Column G)
+        sheet.getRange(i + 1, 10).setValue(lat); // CheckOutLat (Column J)
+        sheet.getRange(i + 1, 11).setValue(lng); // CheckOutLng (Column K)
+        sheet.getRange(i + 1, 12).setValue(duration); // Duration (Column L)
+        sheet.getRange(i + 1, 14).setValue(data[i][13] + ' | Check-out: ' + locationCheck.distance + 'm'); // Notes
+
+        Logger.log('Check-out successful for user: ' + data[i][2]);
+
+        return createResponse(true, 'Check-out berjaya! Durasi: ' + duration, {
+          checkOutTime: timeString,
+          duration: duration,
+          distance: locationCheck.distance,
+          checkInTime: data[i][5],
+          status: data[i][12],
+          date: today
+        });
+      }
+    }
+
+    Logger.log('No check-in record found for user: ' + userId + ' on date: ' + today);
+    return createResponse(false, 'Tiada rekod check-in untuk hari ini');
+  } catch (error) {
+    Logger.log('Error in handleCheckOut: ' + error.message);
+    Logger.log('Stack: ' + error.stack);
+    return createResponse(false, 'Error check-out: ' + error.message);
+  }
 }
 
 /**
@@ -473,29 +628,68 @@ function getUserStats(params) {
  */
 function addUser(params) {
   const sheet = getSheet(SHEET_USERS);
-
-  // Check if email already exists
   const data = sheet.getDataRange().getValues();
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][1] === params.email) {
-      return createResponse(false, 'Email sudah wujud');
+
+  // Check if userId provided, otherwise generate new one
+  let userId = params.userId;
+  if (!userId) {
+    // Generate random 6 digit ID
+    userId = generateUserId();
+
+    // Check if generated ID already exists
+    let attempts = 0;
+    while (attempts < 10) {
+      let exists = false;
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][0] === userId) {
+          exists = true;
+          break;
+        }
+      }
+      if (!exists) break;
+      userId = generateUserId();
+      attempts++;
+    }
+  } else {
+    // Validate userId is 6 digits
+    if (!/^\d{6}$/.test(userId)) {
+      return createResponse(false, 'UserID mesti 6 digit nombor');
+    }
+
+    // Check if userId already exists
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === userId) {
+        return createResponse(false, 'UserID sudah wujud');
+      }
+    }
+  }
+
+  // Check if email already exists (if provided)
+  if (params.email) {
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][1] === params.email) {
+        return createResponse(false, 'Email sudah wujud');
+      }
     }
   }
 
   const hashedPassword = hashPassword(params.password);
 
   sheet.appendRow([
-    generateId(),
-    params.email,
+    userId,
+    params.email || '',
     hashedPassword,
     params.name,
-    params.role,
+    params.role || 'guru',
     params.status || 'Active',
     new Date().toISOString(),
     ''
   ]);
 
-  return createResponse(true, 'Pengguna berjaya ditambah');
+  return createResponse(true, 'Pengguna berjaya ditambah', {
+    userId: userId,
+    name: params.name
+  });
 }
 
 /**
@@ -560,6 +754,196 @@ function getAllUsers() {
   }
 
   return createResponse(true, 'Senarai pengguna berjaya diambil', users);
+}
+
+/**
+ * Get single user by ID
+ */
+function getUser(params) {
+  const userId = params.userId;
+
+  if (!userId) {
+    return createResponse(false, 'User ID diperlukan');
+  }
+
+  const sheet = getSheet(SHEET_USERS);
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === userId) {
+      return createResponse(true, 'Pengguna dijumpai', {
+        id: data[i][0],
+        email: data[i][1],
+        name: data[i][3],
+        role: data[i][4],
+        status: data[i][5],
+        created: data[i][6],
+        lastLogin: data[i][7]
+      });
+    }
+  }
+
+  return createResponse(false, 'Pengguna tidak dijumpai');
+}
+
+/**
+ * Get today's attendance for all users (Admin)
+ */
+function getTodayAttendance() {
+  const sheet = getSheet(SHEET_ATTENDANCE);
+  const today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  const data = sheet.getDataRange().getValues();
+  const records = [];
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][4] === today) {
+      records.push({
+        id: data[i][0],
+        userId: data[i][1],
+        userName: data[i][2],
+        email: data[i][3],
+        date: data[i][4],
+        checkIn: data[i][5],
+        checkOut: data[i][6],
+        checkInLat: data[i][7],
+        checkInLng: data[i][8],
+        checkOutLat: data[i][9],
+        checkOutLng: data[i][10],
+        duration: data[i][11],
+        status: data[i][12],
+        notes: data[i][13]
+      });
+    }
+  }
+
+  return createResponse(true, 'Rekod kehadiran hari ini berjaya diambil', records);
+}
+
+/**
+ * Submit note/catatan (User)
+ */
+function submitNote(params) {
+  try {
+    const userId = params.userId;
+    const userName = params.userName;
+    const email = params.email;
+    const noteType = params.noteType;
+    const noteDate = params.noteDate;
+    const noteReason = params.noteReason;
+    const submittedDate = params.submittedDate;
+
+    // Validation
+    if (!userId || !userName || !noteType || !noteDate || !noteReason) {
+      return createResponse(false, 'Data tidak lengkap');
+    }
+
+    Logger.log('Submitting note for user: ' + userName);
+
+    const sheet = getSheet(SHEET_NOTES);
+
+    // Add note record
+    sheet.appendRow([
+      generateId(),
+      userId,
+      userName,
+      email || '',
+      noteType,
+      noteDate,
+      noteReason,
+      submittedDate,
+      'Pending',  // Status
+      '',         // AdminResponse
+      ''          // AdminRespondedDate
+    ]);
+
+    Logger.log('Note submitted successfully');
+
+    return createResponse(true, 'Catatan berjaya dihantar', {
+      userId: userId,
+      noteType: noteType,
+      noteDate: noteDate
+    });
+
+  } catch (error) {
+    Logger.log('Error in submitNote: ' + error.message);
+    return createResponse(false, 'Error submit note: ' + error.message);
+  }
+}
+
+/**
+ * Get all notes (Admin)
+ */
+function getAllNotes() {
+  try {
+    const sheet = getSheet(SHEET_NOTES);
+    const data = sheet.getDataRange().getValues();
+    const notes = [];
+
+    // Skip header row
+    for (let i = 1; i < data.length; i++) {
+      notes.push({
+        id: data[i][0],
+        userId: data[i][1],
+        userName: data[i][2],
+        email: data[i][3],
+        noteType: data[i][4],
+        noteDate: data[i][5],
+        noteReason: data[i][6],
+        submittedDate: data[i][7],
+        status: data[i][8],
+        adminResponse: data[i][9],
+        adminRespondedDate: data[i][10]
+      });
+    }
+
+    return createResponse(true, 'Senarai catatan berjaya diambil', notes);
+
+  } catch (error) {
+    Logger.log('Error in getAllNotes: ' + error.message);
+    return createResponse(false, 'Error get notes: ' + error.message);
+  }
+}
+
+/**
+ * Get notes by user ID
+ */
+function getNotesByUser(params) {
+  try {
+    const userId = params.userId;
+
+    if (!userId) {
+      return createResponse(false, 'User ID diperlukan');
+    }
+
+    const sheet = getSheet(SHEET_NOTES);
+    const data = sheet.getDataRange().getValues();
+    const notes = [];
+
+    // Skip header row
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][1] === userId) {
+        notes.push({
+          id: data[i][0],
+          userId: data[i][1],
+          userName: data[i][2],
+          email: data[i][3],
+          noteType: data[i][4],
+          noteDate: data[i][5],
+          noteReason: data[i][6],
+          submittedDate: data[i][7],
+          status: data[i][8],
+          adminResponse: data[i][9],
+          adminRespondedDate: data[i][10]
+        });
+      }
+    }
+
+    return createResponse(true, 'Catatan pengguna berjaya diambil', notes);
+
+  } catch (error) {
+    Logger.log('Error in getNotesByUser: ' + error.message);
+    return createResponse(false, 'Error get user notes: ' + error.message);
+  }
 }
 
 

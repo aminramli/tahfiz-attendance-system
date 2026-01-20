@@ -18,21 +18,27 @@
                         <path d="M40 15 L40 40 L55 55" stroke="#4CAF50" stroke-width="4" stroke-linecap="round"/>
                     </svg>
                 </div>
-                <h1>Sistem Kehadiran Tahfiz</h1>
-                <p class="subtitle">Geolocation-Based Attendance</p>
+                <h1>Sistem Kehadiran MRSM Matra</h1>
+                <p class="subtitle">Geolocation-Based Attendance System</p>
             </div>
 
             <form id="loginForm" class="login-form">
                 <div class="form-group">
-                    <label for="email">Email / ID Pengguna</label>
+                    <label for="userId">ID Pengguna (6 Digit)</label>
                     <input
                         type="text"
-                        id="email"
-                        name="email"
-                        placeholder="Masukkan email atau ID"
+                        id="userId"
+                        name="userId"
+                        placeholder="Contoh: 123456"
                         required
+                        maxlength="6"
+                        pattern="[0-9]{6}"
+                        inputmode="numeric"
                         autocomplete="username"
                     >
+                    <small style="color: #666; font-size: 12px; display: block; margin-top: 4px;">
+                        Masukkan 6 digit nombor ID anda
+                    </small>
                 </div>
 
                 <div class="form-group">
@@ -69,10 +75,18 @@
         </div>
 
         <div class="demo-credentials">
-            <p><strong>Demo Login:</strong></p>
-            <p>Guru: <code>guru@tahfiz.com</code> / <code>guru123</code></p>
-            <p>Admin: <code>admin@tahfiz.com</code> / <code>admin123</code></p>
+            <p><strong>🔑 Akaun Demo Login:</strong></p>
+            <p><strong>👨‍🏫 GURU:</strong></p>
+            <p>ID: <code>100001</code> | Password: <code>guru123</code></p>
+            <p><strong>👨‍💼 ADMIN:</strong></p>
+            <p>ID: <code>999999</code> | Password: <code>admin123</code></p>
         </div>
+
+        <!-- Footer -->
+        <footer class="login-page-footer">
+            <p>Disediakan oleh <strong>Amin Ramli</strong> untuk <strong>MRSM Matra</strong></p>
+            <p class="footer-year">&copy; 2026 - Sistem Kehadiran MRSM Matra</p>
+        </footer>
     </div>
 
     <!-- Scripts - Load config first, then auth -->

@@ -162,6 +162,35 @@
             background: #F3E5F5;
             color: #6A1B9A;
         }
+        .btn-danger {
+            background: #f44336;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .btn-danger:hover {
+            background: #d32f2f;
+        }
+        .note-detail-info {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .note-detail-info .form-row {
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            gap: 12px;
+            align-items: start;
+        }
+        .note-detail-info label {
+            font-weight: 600;
+            color: #757575;
+            font-size: 13px;
+        }
         @media (max-width: 768px) {
             .admin-tabs {
                 overflow-x: auto;
@@ -171,6 +200,9 @@
             }
             .filter-bar {
                 flex-direction: column;
+            }
+            .note-detail-info .form-row {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -198,6 +230,9 @@
             </button>
             <button class="admin-tab" data-tab="attendance">
                 <span>📋 Kehadiran Hari Ini</span>
+            </button>
+            <button class="admin-tab" data-tab="catatan">
+                <span>📝 Catatan</span>
             </button>
             <button class="admin-tab" data-tab="users">
                 <span>👥 Pengurusan Pengguna</span>
@@ -254,6 +289,88 @@
                             <tr>
                                 <td colspan="5" style="text-align: center; color: #757575;">
                                     Memuatkan data...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Catatan Tab -->
+        <div class="tab-content" id="catatan">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3>Catatan Lewat/Tidak Hadir</h3>
+                    <button class="btn btn-primary" id="refreshNotesBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                        </svg>
+                        <span>Refresh</span>
+                    </button>
+                </div>
+
+                <!-- Filter Bar -->
+                <div class="filter-bar">
+                    <select id="filterNoteType" style="flex: 1;">
+                        <option value="">Semua Jenis</option>
+                        <option value="Lewat">Lewat</option>
+                        <option value="Tidak Hadir">Tidak Hadir</option>
+                        <option value="Cuti">Cuti</option>
+                        <option value="Lain-lain">Lain-lain</option>
+                    </select>
+                    <select id="filterNoteStatus" style="flex: 1;">
+                        <option value="">Semua Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                    </select>
+                    <input type="date" id="filterNoteDateFrom" placeholder="Dari Tarikh" style="flex: 1;">
+                    <input type="date" id="filterNoteDateTo" placeholder="Hingga Tarikh" style="flex: 1;">
+                    <button class="btn btn-primary" id="filterNotesBtn">
+                        <span>Tapis</span>
+                    </button>
+                </div>
+
+                <!-- Notes Statistics -->
+                <div class="stats-overview" style="margin-top: 16px;">
+                    <div class="stat-card">
+                        <h4>Pending</h4>
+                        <div class="value" style="color: #FF9800;" id="statNotesPending">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Approved</h4>
+                        <div class="value" style="color: #4CAF50;" id="statNotesApproved">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Rejected</h4>
+                        <div class="value" style="color: #f44336;" id="statNotesRejected">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Jumlah</h4>
+                        <div class="value" style="color: #2196F3;" id="statNotesTotal">0</div>
+                    </div>
+                </div>
+
+                <!-- Notes Table -->
+                <div class="table-container" style="margin-top: 20px;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 80px;">User ID</th>
+                                <th>Nama</th>
+                                <th style="width: 120px;">Jenis</th>
+                                <th style="width: 110px;">Tarikh</th>
+                                <th>Alasan</th>
+                                <th style="width: 100px;">Status</th>
+                                <th style="width: 110px;">Dihantar</th>
+                                <th style="width: 150px;">Tindakan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="notesTableBody">
+                            <tr>
+                                <td colspan="8" style="text-align: center; color: #757575; padding: 40px;">
+                                    Memuatkan catatan...
                                 </td>
                             </tr>
                         </tbody>
@@ -378,6 +495,75 @@
                     <button type="submit" class="btn btn-success btn-block">
                         <span>Simpan</span>
                     </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Note Details Modal -->
+    <div class="modal" id="noteDetailModal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>Butiran Catatan</h2>
+                <button class="btn-close" id="closeNoteDetailModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="note-detail-info">
+                    <div class="form-row">
+                        <label>User ID:</label>
+                        <p id="noteDetailUserId" style="margin: 0; font-weight: 600;">--</p>
+                    </div>
+                    <div class="form-row">
+                        <label>Nama:</label>
+                        <p id="noteDetailUserName" style="margin: 0; font-weight: 600;">--</p>
+                    </div>
+                    <div class="form-row">
+                        <label>Email:</label>
+                        <p id="noteDetailEmail" style="margin: 0;">--</p>
+                    </div>
+                    <div class="form-row">
+                        <label>Jenis:</label>
+                        <p id="noteDetailType" style="margin: 0;">--</p>
+                    </div>
+                    <div class="form-row">
+                        <label>Tarikh:</label>
+                        <p id="noteDetailDate" style="margin: 0;">--</p>
+                    </div>
+                    <div class="form-row">
+                        <label>Alasan:</label>
+                        <p id="noteDetailReason" style="margin: 0; padding: 12px; background: #F5F5F5; border-radius: 8px; line-height: 1.6;">--</p>
+                    </div>
+                    <div class="form-row">
+                        <label>Status Semasa:</label>
+                        <p id="noteDetailStatus" style="margin: 0;">--</p>
+                    </div>
+                    <div class="form-row">
+                        <label>Dihantar:</label>
+                        <p id="noteDetailSubmitted" style="margin: 0;">--</p>
+                    </div>
+                </div>
+
+                <hr style="margin: 20px 0; border: none; border-top: 1px solid #E0E0E0;">
+
+                <form class="modal-form" id="noteResponseForm">
+                    <input type="hidden" id="noteDetailRowIndex">
+                    <div class="form-row">
+                        <label for="noteAdminResponse">Respon Admin (Opsional):</label>
+                        <textarea
+                            id="noteAdminResponse"
+                            rows="3"
+                            placeholder="Masukkan komen atau respon..."
+                            style="padding: 10px; border: 2px solid #E0E0E0; border-radius: 8px; font-size: 14px; resize: vertical;"
+                        ></textarea>
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-top: 16px;">
+                        <button type="button" class="btn btn-success" id="approveNoteBtn" style="flex: 1;">
+                            <span>✓ Approve</span>
+                        </button>
+                        <button type="button" class="btn btn-danger" id="rejectNoteBtn" style="flex: 1;">
+                            <span>✗ Reject</span>
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>

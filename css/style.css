@@ -215,6 +215,30 @@ body {
     text-decoration: underline;
 }
 
+/* Login Page Footer (Kredit) */
+.login-page-footer {
+    text-align: center;
+    margin-top: 30px;
+    padding: 20px;
+    color: #666;
+    font-size: 13px;
+}
+
+.login-page-footer p {
+    margin: 5px 0;
+}
+
+.login-page-footer strong {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.login-page-footer .footer-year {
+    font-size: 12px;
+    color: #999;
+    margin-top: 8px;
+}
+
 .demo-credentials {
     background: rgba(255,255,255,0.9);
     padding: 16px;
@@ -622,4 +646,69 @@ body {
 
 .profile-info p:last-child {
     border-bottom: none;
+}
+
+/* Edit Profile Form */
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: var(--text-dark);
+    font-size: 14px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    box-sizing: border-box;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.1);
+}
+
+.form-control:disabled {
+    background-color: #f0f0f0;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.form-group small {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: #666;
+}
+
+/* Textarea styling */
+textarea.form-control {
+    resize: vertical;
+    min-height: 100px;
+    line-height: 1.5;
+}
+
+/* Select styling */
+select.form-control {
+    cursor: pointer;
+    background-color: white;
+    appearance: none;
+    background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L6 6L11 1" stroke="%23666" stroke-width="2" stroke-linecap="round"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+}
+
+select.form-control:focus {
+    background-color: white;
 }

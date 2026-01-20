@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git commit -m \"Add bottom navigation to Admin Dashboard\n\n- Added responsive bottom navigation bar\n- 4 navigation items (Overview, Kehadiran, Pengguna, Profil)\n- Synced with top tabs navigation\n- Mobile-friendly design\n- Active state management\n- Profile modal trigger from bottom nav\n\n🤖 Generated with Claude Code\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")"
+      "Bash(git commit -m \"Add bottom navigation to Admin Dashboard\n\n- Added responsive bottom navigation bar\n- 4 navigation items (Overview, Kehadiran, Pengguna, Profil)\n- Synced with top tabs navigation\n- Mobile-friendly design\n- Active state management\n- Profile modal trigger from bottom nav\n\n🤖 Generated with Claude Code\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")",
+      "Bash(dir /s /b *.gs)",
+      "Bash(git add .)"
     ],
     "deny": [],
     "ask": []

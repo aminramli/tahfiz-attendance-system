@@ -156,6 +156,36 @@ const GoogleSheetsAPI = {
             month: String(now.getMonth() + 1).padStart(2, '0'),
             year: now.getFullYear()
         };
+    },
+
+    async submitNote(noteData) {
+        return await this.makeRequest('submitNote', {
+            userId: noteData.userId,
+            userName: noteData.userName,
+            email: noteData.email,
+            noteType: noteData.noteType,
+            noteDate: noteData.noteDate,
+            noteReason: noteData.noteReason,
+            submittedDate: noteData.submittedDate
+        });
+    },
+
+    async getAllNotes() {
+        return await this.makeRequest('getAllNotes');
+    },
+
+    async getNotesByUser(userId) {
+        return await this.makeRequest('getNotesByUser', { userId });
+    },
+
+    async updateNoteStatus(rowIndex, status, adminResponse, adminName) {
+        return await this.makeRequest('updateNoteStatus', {
+            rowIndex,
+            status,
+            adminResponse: adminResponse || '',
+            adminName,
+            processedDate: new Date().toISOString()
+        });
     }
 };
 

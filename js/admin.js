@@ -7,8 +7,11 @@ const AdminState = {
     currentUser: null,
     users: [],
     todayAttendance: [],
+    notes: [],
+    filteredNotes: [],
     currentTab: 'overview',
-    editingUserId: null
+    editingUserId: null,
+    selectedNote: null
 };
 
 const DOM = {};
@@ -35,9 +38,16 @@ function initializeDOMReferences() {
     DOM.statTotalUsers = document.getElementById('statTotalUsers');
     DOM.statMonthlyAttendance = document.getElementById('statMonthlyAttendance');
 
+    // Notes Stats
+    DOM.statNotesPending = document.getElementById('statNotesPending');
+    DOM.statNotesApproved = document.getElementById('statNotesApproved');
+    DOM.statNotesRejected = document.getElementById('statNotesRejected');
+    DOM.statNotesTotal = document.getElementById('statNotesTotal');
+
     // Tables
     DOM.attendanceTableBody = document.getElementById('attendanceTableBody');
     DOM.usersTableBody = document.getElementById('usersTableBody');
+    DOM.notesTableBody = document.getElementById('notesTableBody');
 
     // Buttons
     DOM.addUserBtn = document.getElementById('addUserBtn');
@@ -71,6 +81,30 @@ function initializeDOMReferences() {
     DOM.generateReportBtn = document.getElementById('generateReportBtn');
     DOM.exportExcelBtn = document.getElementById('exportExcelBtn');
     DOM.reportContent = document.getElementById('reportContent');
+
+    // Notes
+    DOM.refreshNotesBtn = document.getElementById('refreshNotesBtn');
+    DOM.filterNoteType = document.getElementById('filterNoteType');
+    DOM.filterNoteStatus = document.getElementById('filterNoteStatus');
+    DOM.filterNoteDateFrom = document.getElementById('filterNoteDateFrom');
+    DOM.filterNoteDateTo = document.getElementById('filterNoteDateTo');
+    DOM.filterNotesBtn = document.getElementById('filterNotesBtn');
+
+    // Note Detail Modal
+    DOM.noteDetailModal = document.getElementById('noteDetailModal');
+    DOM.closeNoteDetailModal = document.getElementById('closeNoteDetailModal');
+    DOM.noteDetailUserId = document.getElementById('noteDetailUserId');
+    DOM.noteDetailUserName = document.getElementById('noteDetailUserName');
+    DOM.noteDetailEmail = document.getElementById('noteDetailEmail');
+    DOM.noteDetailType = document.getElementById('noteDetailType');
+    DOM.noteDetailDate = document.getElementById('noteDetailDate');
+    DOM.noteDetailReason = document.getElementById('noteDetailReason');
+    DOM.noteDetailStatus = document.getElementById('noteDetailStatus');
+    DOM.noteDetailSubmitted = document.getElementById('noteDetailSubmitted');
+    DOM.noteDetailRowIndex = document.getElementById('noteDetailRowIndex');
+    DOM.noteAdminResponse = document.getElementById('noteAdminResponse');
+    DOM.approveNoteBtn = document.getElementById('approveNoteBtn');
+    DOM.rejectNoteBtn = document.getElementById('rejectNoteBtn');
 }
 
 function setupTabs() {
@@ -96,6 +130,9 @@ function setupTabs() {
                     switch (tabName) {
                         case 'attendance':
                             loadTodayAttendance();
+                            break;
+                        case 'catatan':
+                            loadAllNotes();
                             break;
                         case 'users':
                             loadAllUsers();
@@ -171,6 +208,19 @@ function setupEventListeners() {
             openProfileModal();
         });
     }
+
+    // Notes event listeners
+    DOM.refreshNotesBtn.addEventListener('click', loadAllNotes);
+    DOM.filterNotesBtn.addEventListener('click', applyNotesFilter);
+
+    // Note detail modal
+    DOM.closeNoteDetailModal.addEventListener('click', closeNoteDetailModal);
+    DOM.noteDetailModal.addEventListener('click', (e) => {
+        if (e.target === DOM.noteDetailModal) closeNoteDetailModal();
+    });
+
+    DOM.approveNoteBtn.addEventListener('click', () => updateNoteStatus('approved'));
+    DOM.rejectNoteBtn.addEventListener('click', () => updateNoteStatus('rejected'));
 }
 
 function setupReportFilters() {
@@ -573,6 +623,254 @@ function displayReport(data, month, year) {
 
 function exportToExcel() {
     alert('Feature export Excel akan ditambah tidak lama lagi!');
+}
+
+// ==========================================
+// NOTES MANAGEMENT
+// ==========================================
+
+// Load all notes
+async function loadAllNotes() {
+    try {
+        const result = await GoogleSheetsAPI.getAllNotes();
+
+        if (result.success) {
+            AdminState.notes = result.data || [];
+            AdminState.filteredNotes = AdminState.notes;
+            displayNotesTable();
+            updateNotesStats();
+        } else {
+            throw new Error(result.message);
+        }
+    } catch (error) {
+        console.error('Error loading notes:', error);
+        DOM.notesTableBody.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align: center; color: #f44336; padding: 40px;">
+                    Ralat: ${error.message}
+                </td>
+            </tr>
+        `;
+    }
+}
+
+// Display notes table
+function displayNotesTable() {
+    if (AdminState.filteredNotes.length === 0) {
+        DOM.notesTableBody.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align: center; color: #757575; padding: 40px;">
+                    Tiada catatan dijumpai
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    DOM.notesTableBody.innerHTML = '';
+    AdminState.filteredNotes.forEach((note, index) => {
+        const row = document.createElement('tr');
+
+        // Status badge
+        const statusBadge = getStatusBadge(note.status || 'pending');
+
+        // Type badge
+        const typeBadge = getTypeBadge(note.noteType);
+
+        // Format submitted date
+        const submittedDate = note.submittedDate ?
+            formatDateTime(note.submittedDate) : '--';
+
+        row.innerHTML = `
+            <td>${note.userId || '--'}</td>
+            <td><strong>${note.userName || '--'}</strong></td>
+            <td>${typeBadge}</td>
+            <td>${note.noteDate || '--'}</td>
+            <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                ${note.noteReason || '--'}
+            </td>
+            <td>${statusBadge}</td>
+            <td style="font-size: 12px;">${submittedDate}</td>
+            <td>
+                <button class="btn-action btn-edit" onclick="viewNoteDetail(${note.rowIndex})">
+                    Lihat
+                </button>
+            </td>
+        `;
+        DOM.notesTableBody.appendChild(row);
+    });
+}
+
+// Update notes statistics
+function updateNotesStats() {
+    const pending = AdminState.notes.filter(n => !n.status || n.status === 'pending').length;
+    const approved = AdminState.notes.filter(n => n.status === 'approved').length;
+    const rejected = AdminState.notes.filter(n => n.status === 'rejected').length;
+
+    DOM.statNotesPending.textContent = pending;
+    DOM.statNotesApproved.textContent = approved;
+    DOM.statNotesRejected.textContent = rejected;
+    DOM.statNotesTotal.textContent = AdminState.notes.length;
+}
+
+// Apply notes filter
+function applyNotesFilter() {
+    const typeFilter = DOM.filterNoteType.value;
+    const statusFilter = DOM.filterNoteStatus.value;
+    const dateFromFilter = DOM.filterNoteDateFrom.value;
+    const dateToFilter = DOM.filterNoteDateTo.value;
+
+    AdminState.filteredNotes = AdminState.notes.filter(note => {
+        // Type filter
+        if (typeFilter && note.noteType !== typeFilter) return false;
+
+        // Status filter
+        const noteStatus = note.status || 'pending';
+        if (statusFilter && noteStatus !== statusFilter) return false;
+
+        // Date range filter
+        if (dateFromFilter && note.noteDate < dateFromFilter) return false;
+        if (dateToFilter && note.noteDate > dateToFilter) return false;
+
+        return true;
+    });
+
+    displayNotesTable();
+}
+
+// View note detail
+window.viewNoteDetail = function(rowIndex) {
+    const note = AdminState.notes.find(n => n.rowIndex === rowIndex);
+    if (!note) {
+        alert('Catatan tidak dijumpai');
+        return;
+    }
+
+    AdminState.selectedNote = note;
+
+    // Populate modal
+    DOM.noteDetailUserId.textContent = note.userId || '--';
+    DOM.noteDetailUserName.textContent = note.userName || '--';
+    DOM.noteDetailEmail.textContent = note.email || '--';
+    DOM.noteDetailType.textContent = note.noteType || '--';
+    DOM.noteDetailDate.textContent = note.noteDate || '--';
+    DOM.noteDetailReason.textContent = note.noteReason || '--';
+    DOM.noteDetailStatus.innerHTML = getStatusBadge(note.status || 'pending');
+    DOM.noteDetailSubmitted.textContent = note.submittedDate ?
+        formatDateTime(note.submittedDate) : '--';
+    DOM.noteDetailRowIndex.value = rowIndex;
+    DOM.noteAdminResponse.value = note.adminResponse || '';
+
+    // Disable buttons if already processed
+    const isProcessed = note.status === 'approved' || note.status === 'rejected';
+    DOM.approveNoteBtn.disabled = isProcessed;
+    DOM.rejectNoteBtn.disabled = isProcessed;
+    DOM.noteAdminResponse.disabled = isProcessed;
+
+    if (isProcessed) {
+        DOM.approveNoteBtn.style.opacity = '0.5';
+        DOM.rejectNoteBtn.style.opacity = '0.5';
+        DOM.approveNoteBtn.style.cursor = 'not-allowed';
+        DOM.rejectNoteBtn.style.cursor = 'not-allowed';
+    } else {
+        DOM.approveNoteBtn.style.opacity = '1';
+        DOM.rejectNoteBtn.style.opacity = '1';
+        DOM.approveNoteBtn.style.cursor = 'pointer';
+        DOM.rejectNoteBtn.style.cursor = 'pointer';
+    }
+
+    DOM.noteDetailModal.classList.add('active');
+};
+
+// Close note detail modal
+function closeNoteDetailModal() {
+    DOM.noteDetailModal.classList.remove('active');
+    AdminState.selectedNote = null;
+}
+
+// Update note status (approve/reject)
+async function updateNoteStatus(newStatus) {
+    if (!AdminState.selectedNote) {
+        alert('Tiada catatan dipilih');
+        return;
+    }
+
+    const adminResponse = DOM.noteAdminResponse.value.trim();
+    const rowIndex = AdminState.selectedNote.rowIndex;
+
+    const confirmMsg = newStatus === 'approved' ?
+        'Adakah anda pasti mahu APPROVE catatan ini?' :
+        'Adakah anda pasti mahu REJECT catatan ini?';
+
+    if (!confirm(confirmMsg)) {
+        return;
+    }
+
+    try {
+        const result = await GoogleSheetsAPI.updateNoteStatus(
+            rowIndex,
+            newStatus,
+            adminResponse,
+            AdminState.currentUser.name
+        );
+
+        if (result.success) {
+            alert(`Catatan berjaya ${newStatus === 'approved' ? 'diluluskan' : 'ditolak'}!`);
+            closeNoteDetailModal();
+            await loadAllNotes();
+        } else {
+            alert(result.message || 'Ralat mengemas kini catatan');
+        }
+    } catch (error) {
+        console.error('Error updating note status:', error);
+        alert('Ralat mengemas kini catatan: ' + error.message);
+    }
+}
+
+// Get status badge HTML
+function getStatusBadge(status) {
+    const statusMap = {
+        'pending': { class: 'badge', style: 'background: #FFF3E0; color: #E65100;', text: 'Pending' },
+        'approved': { class: 'badge badge-active', style: '', text: 'Approved' },
+        'rejected': { class: 'badge badge-inactive', style: '', text: 'Rejected' }
+    };
+
+    const badge = statusMap[status] || statusMap['pending'];
+    return `<span class="${badge.class}" style="${badge.style}">${badge.text}</span>`;
+}
+
+// Get type badge HTML
+function getTypeBadge(type) {
+    const typeMap = {
+        'Lewat': { color: '#FF9800', text: 'Lewat' },
+        'Tidak Hadir': { color: '#f44336', text: 'Tidak Hadir' },
+        'Cuti': { color: '#2196F3', text: 'Cuti' },
+        'Lain-lain': { color: '#9E9E9E', text: 'Lain-lain' }
+    };
+
+    const typeInfo = typeMap[type] || typeMap['Lain-lain'];
+    return `<span style="padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; background: ${typeInfo.color}22; color: ${typeInfo.color};">${typeInfo.text}</span>`;
+}
+
+// Format datetime
+function formatDateTime(isoString) {
+    if (!isoString) return '--';
+
+    try {
+        const date = new Date(isoString);
+        const dateStr = date.toLocaleDateString('ms-MY', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+        const timeStr = date.toLocaleTimeString('ms-MY', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        return `${dateStr} ${timeStr}`;
+    } catch (e) {
+        return isoString;
+    }
 }
 
 // Profile modal

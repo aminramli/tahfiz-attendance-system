@@ -4,7 +4,7 @@
    ========================================== */
 
 const AuthManager = {
-    async login(email, password, rememberMe = false) {
+    async login(userIdOrEmail, password, rememberMe = false) {
         const loginForm = document.getElementById('loginForm');
         const errorMessage = document.getElementById('errorMessage');
         const submitBtn = loginForm.querySelector('button[type="submit"]');
@@ -14,7 +14,13 @@ const AuthManager = {
             submitBtn.innerHTML = '<span>Mengelog masuk...</span>';
             this.hideError();
 
-            const url = `${CONFIG.APPS_SCRIPT_URL}?action=${CONFIG.API_ENDPOINTS.LOGIN}&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`;
+            // Support both userId (6 digit) and email login
+            const isUserId = /^\d{6}$/.test(userIdOrEmail);
+            const loginParam = isUserId ? `userId=${encodeURIComponent(userIdOrEmail)}` : `email=${encodeURIComponent(userIdOrEmail)}`;
+
+            const url = `${CONFIG.APPS_SCRIPT_URL}?action=${CONFIG.API_ENDPOINTS.LOGIN}&${loginParam}&password=${encodeURIComponent(password)}`;
+
+            console.log('Login attempt with:', isUserId ? 'userId' : 'email', userIdOrEmail);
 
             const response = await fetch(url, {
                 method: 'GET',
@@ -22,14 +28,16 @@ const AuthManager = {
             });
 
             const data = await response.json();
+            console.log('Login response:', data);
 
             if (data.success) {
                 const userData = {
-                    id: data.user.id,
-                    name: data.user.name,
-                    email: data.user.email,
-                    role: data.user.role,
-                    status: data.user.status
+                    id: data.data.id || data.user.id,
+                    userId: data.data.userId || data.user.userId || userIdOrEmail,
+                    name: data.data.name || data.user.name,
+                    email: data.data.email || data.user.email || '',
+                    role: data.data.role || data.user.role,
+                    status: data.data.status || data.user.status
                 };
 
                 sessionStorage.setItem(CONFIG.STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
@@ -42,7 +50,7 @@ const AuthManager = {
 
                 this.redirectToDashboard(userData.role);
             } else {
-                this.showError(data.message || 'Email atau kata laluan tidak sah');
+                this.showError(data.message || 'ID Pengguna atau kata laluan tidak sah');
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<span>Log Masuk</span>';
             }
@@ -128,6 +136,19 @@ const AuthManager = {
         }
 
         return true;
+    },
+
+    updateUserData(userData) {
+        // Update session storage
+        sessionStorage.setItem(CONFIG.STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
+
+        // Update local storage jika remember me aktif
+        const rememberMe = localStorage.getItem(CONFIG.STORAGE_KEYS.REMEMBER_ME);
+        if (rememberMe === 'true') {
+            localStorage.setItem(CONFIG.STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
+        }
+
+        console.log('User data updated in storage');
     }
 };
 
@@ -143,17 +164,43 @@ document.addEventListener('DOMContentLoaded', function() {
 
         loginForm.addEventListener('submit', async function(e) {
             e.preventDefault();
-            const email = document.getElementById('email').value.trim();
+
+            // Support both old email field and new userId field
+            const userIdField = document.getElementById('userId');
+            const emailField = document.getElementById('email');
+            const userId = userIdField ? userIdField.value.trim() : (emailField ? emailField.value.trim() : '');
             const password = document.getElementById('password').value;
             const rememberMe = document.getElementById('remember').checked;
-            await AuthManager.login(email, password, rememberMe);
+
+            // Validate 6 digit ID if using new system
+            if (userIdField && userId) {
+                if (!/^\d{6}$/.test(userId)) {
+                    AuthManager.showError('ID Pengguna mesti 6 digit nombor sahaja');
+                    return;
+                }
+            }
+
+            await AuthManager.login(userId, password, rememberMe);
         });
 
         const forgotPasswordLink = document.getElementById('forgotPassword');
         if (forgotPasswordLink) {
             forgotPasswordLink.addEventListener('click', function(e) {
                 e.preventDefault();
-                alert('Sila hubungi admin untuk reset kata laluan:\nadmin@tahfiz.com');
+                alert('Sila hubungi admin untuk reset kata laluan:\nID Admin: 999999');
+            });
+        }
+
+        // Auto-format userId input to numbers only
+        const userIdInput = document.getElementById('userId');
+        if (userIdInput) {
+            userIdInput.addEventListener('input', function(e) {
+                // Remove non-numeric characters
+                this.value = this.value.replace(/\D/g, '');
+                // Limit to 6 digits
+                if (this.value.length > 6) {
+                    this.value = this.value.slice(0, 6);
+                }
             });
         }
     }
