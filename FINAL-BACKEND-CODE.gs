@@ -242,7 +242,7 @@ function handleLogin(params) {
 
       const userMatches = (userId && rowUserId === userId) || (email && rowEmail === email);
 
-      if (userMatches && rowStatus === 'active') {
+      if (userMatches && (rowStatus === 'active' || rowStatus === 'Active')) {
         if (verifyPassword(password, rowPassword)) {
           sheet.getRange(i + 1, 8).setValue(new Date().toISOString());
 

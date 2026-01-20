@@ -31,13 +31,15 @@ const AuthManager = {
             console.log('Login response:', data);
 
             if (data.success) {
+                // Backend returns data in data.data field
+                const apiData = data.data || {};
                 const userData = {
-                    id: data.data.id || data.user.id,
-                    userId: data.data.userId || data.user.userId || userIdOrEmail,
-                    name: data.data.name || data.user.name,
-                    email: data.data.email || data.user.email || '',
-                    role: data.data.role || data.user.role,
-                    status: data.data.status || data.user.status
+                    id: apiData.id || apiData.userId || userIdOrEmail,
+                    userId: apiData.userId || apiData.id || userIdOrEmail,
+                    name: apiData.name || '',
+                    email: apiData.email || '',
+                    role: apiData.role || 'guru',
+                    status: apiData.status || 'Active'
                 };
 
                 sessionStorage.setItem(CONFIG.STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
