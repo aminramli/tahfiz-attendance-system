@@ -21,7 +21,7 @@ const CONFIG = {
     },
 
     // Radius yang dibenarkan untuk check-in (dalam meter)
-    ALLOWED_RADIUS: 200,
+    ALLOWED_RADIUS: 100,
 
     // Waktu kehadiran
     ATTENDANCE_TIME: {

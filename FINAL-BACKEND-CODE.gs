@@ -15,7 +15,7 @@ const SHEET_NOTES = 'Notes';
 // GPS Settings (Koordinat MRSM Matra)
 const MRSM_LAT = 3.1979163349111825;
 const MRSM_LNG = 102.47799269609713;
-const ALLOWED_RADIUS = 200; // 200 meter radius
+const ALLOWED_RADIUS = 100; // 100 meter radius
 
 /* ==========================================
    MAIN HANDLER - GET Method (No CORS)
