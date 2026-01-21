@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Backend API</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #4CAF50;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #388E3C;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .success {
+            background: #E8F5E9;
+            border-left: 4px solid #4CAF50;
+        }
+        .error {
+            background: #FFEBEE;
+            border-left: 4px solid #f44336;
+        }
+        .info {
+            background: #E3F2FD;
+            border-left: 4px solid #2196F3;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        label {
+            font-weight: 600;
+            display: block;
+            margin-top: 10px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Backend API Test Tool</h1>
+
+        <!-- Test 1: Check Backend URL -->
+        <div class="test-section">
+            <h3>Test 1: Check Backend URL</h3>
+            <p>URL: <code id="backendUrl"></code></p>
+            <button onclick="testBackendUrl()">Test Connection</button>
+            <div id="urlResult"></div>
+        </div>
+
+        <!-- Test 2: Test Login API -->
+        <div class="test-section">
+            <h3>Test 2: Test Login API</h3>
+            <label>User ID:</label>
+            <input type="text" id="testUserId" value="999999" placeholder="Enter User ID">
+
+            <label>Password:</label>
+            <input type="text" id="testPassword" value="123456" placeholder="Enter Password">
+
+            <br><br>
+            <button onclick="testLogin()">Test Login</button>
+            <button onclick="testLogin('100001', '123456')">Test Guru Login</button>
+            <div id="loginResult"></div>
+        </div>
+
+        <!-- Test 3: Get All Users -->
+        <div class="test-section">
+            <h3>Test 3: Get All Users from Sheet</h3>
+            <button onclick="getAllUsers()">Get All Users</button>
+            <div id="usersResult"></div>
+        </div>
+
+        <!-- Test 4: Direct API Call -->
+        <div class="test-section">
+            <h3>Test 4: Direct API Test (Copy URL)</h3>
+            <p>Copy this URL and paste in browser:</p>
+            <input type="text" id="directUrl" readonly>
+            <br><br>
+            <button onclick="copyDirectUrl()">Copy URL</button>
+            <button onclick="openDirectUrl()">Open in New Tab</button>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script>
+        // Display backend URL
+        document.getElementById('backendUrl').textContent = CONFIG.APPS_SCRIPT_URL;
+
+        // Update direct URL
+        const directTestUrl = CONFIG.APPS_SCRIPT_URL + '?action=login&userId=999999&password=123456';
+        document.getElementById('directUrl').value = directTestUrl;
+
+        async function testBackendUrl() {
+            const resultDiv = document.getElementById('urlResult');
+            resultDiv.innerHTML = '<div class="info">Testing connection...</div>';
+
+            try {
+                const response = await fetch(CONFIG.APPS_SCRIPT_URL + '?action=test', {
+                    method: 'GET',
+                    redirect: 'follow'
+                });
+
+                const text = await response.text();
+
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        ✅ Connection successful!
+                        <br><br>
+                        <strong>Status:</strong> ${response.status}
+                        <br>
+                        <strong>Response:</strong>
+                        <pre>${text}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Connection failed!
+                        <br><br>
+                        <strong>Error:</strong> ${error.message}
+                        <br><br>
+                        <strong>Possible causes:</strong>
+                        <br>• Backend not deployed
+                        <br>• Wrong URL in config.js
+                        <br>• Network/CORS issues
+                    </div>
+                `;
+            }
+        }
+
+        async function testLogin(userId = null, password = null) {
+            const resultDiv = document.getElementById('loginResult');
+            const testUserId = userId || document.getElementById('testUserId').value;
+            const testPassword = password || document.getElementById('testPassword').value;
+
+            resultDiv.innerHTML = '<div class="info">Testing login...</div>';
+
+            const url = `${CONFIG.APPS_SCRIPT_URL}?action=login&userId=${encodeURIComponent(testUserId)}&password=${encodeURIComponent(testPassword)}`;
+
+            console.log('Testing URL:', url);
+
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    redirect: 'follow'
+                });
+
+                const data = await response.json();
+                console.log('Response data:', data);
+
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ LOGIN SUCCESS!
+                            <br><br>
+                            <strong>Message:</strong> ${data.message}
+                            <br>
+                            <strong>User Data:</strong>
+                            <pre>${JSON.stringify(data.data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ LOGIN FAILED!
+                            <br><br>
+                            <strong>Message:</strong> ${data.message}
+                            <br><br>
+                            <strong>Full Response:</strong>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                            <br>
+                            <strong>Possible causes:</strong>
+                            <br>• Wrong User ID or Password in Google Sheet
+                            <br>• Status not set to "Active"
+                            <br>• Sheet name not "Users"
+                            <br>• Data in wrong columns
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ API ERROR!
+                        <br><br>
+                        <strong>Error:</strong> ${error.message}
+                        <br><br>
+                        <strong>Request URL:</strong>
+                        <pre>${url}</pre>
+                    </div>
+                `;
+            }
+        }
+
+        async function getAllUsers() {
+            const resultDiv = document.getElementById('usersResult');
+            resultDiv.innerHTML = '<div class="info">Fetching users...</div>';
+
+            const url = `${CONFIG.APPS_SCRIPT_URL}?action=getAllUsers`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    redirect: 'follow'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const users = data.data || [];
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Found ${users.length} users
+                            <br><br>
+                            <strong>Users in Google Sheet:</strong>
+                            <pre>${JSON.stringify(users, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ Failed to get users
+                            <br><br>
+                            <strong>Message:</strong> ${data.message}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ ERROR!
+                        <br><br>
+                        <strong>Error:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function copyDirectUrl() {
+            const input = document.getElementById('directUrl');
+            input.select();
+            document.execCommand('copy');
+            alert('URL copied! Paste in browser to test directly.');
+        }
+
+        function openDirectUrl() {
+            window.open(document.getElementById('directUrl').value, '_blank');
+        }
+    </script>
+</body>
+</html>
