@@ -230,26 +230,45 @@ function handleLogin(params) {
     const data = sheet.getDataRange().getValues();
 
     Logger.log('Login attempt - userId: ' + userId + ', email: ' + email);
+    Logger.log('Total rows in sheet: ' + data.length);
 
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
-      const rowUserId = row[0];
-      const rowEmail = row[1];
-      const rowPassword = row[2];
-      const rowName = row[3];
-      const rowRole = row[4];
-      const rowStatus = row[5];
+      const rowUserId = String(row[0]).trim(); // Convert to string and trim spaces
+      const rowEmail = String(row[1]).trim();
+      const rowPassword = String(row[2]).trim();
+      const rowName = String(row[3]).trim();
+      const rowRole = String(row[4]).trim();
+      const rowStatus = String(row[5]).trim();
+
+      Logger.log('Row ' + (i+1) + ' - UserID: "' + rowUserId + '", Status: "' + rowStatus + '", Role: "' + rowRole + '"');
 
       const userMatches = (userId && rowUserId === userId) || (email && rowEmail === email);
 
+      if (userMatches) {
+        Logger.log('User matched! Checking status and password...');
+        Logger.log('Status check: rowStatus="' + rowStatus + '" (length: ' + rowStatus.length + ')');
+        Logger.log('Expected: "active" or "Active"');
+      }
+
       if (userMatches && (rowStatus === 'active' || rowStatus === 'Active')) {
+        Logger.log('Status OK! Checking password...');
+        Logger.log('Stored password: "' + rowPassword.substring(0, 10) + '..." (length: ' + rowPassword.length + ')');
+        Logger.log('Input password: "' + password + '" (length: ' + password.length + ')');
+
         // Check both hashed password and plain text password (for easy testing)
-        const isPasswordValid = verifyPassword(password, rowPassword) || (password === rowPassword);
+        const hashedMatch = verifyPassword(password, rowPassword);
+        const plainMatch = (password === rowPassword);
+
+        Logger.log('Hashed password match: ' + hashedMatch);
+        Logger.log('Plain text match: ' + plainMatch);
+
+        const isPasswordValid = hashedMatch || plainMatch;
 
         if (isPasswordValid) {
           sheet.getRange(i + 1, 8).setValue(new Date().toISOString());
 
-          Logger.log('Login successful for: ' + rowName);
+          Logger.log('✓ Login successful for: ' + rowName);
 
           return createResponse(true, 'Login berjaya', {
             id: rowUserId,
@@ -260,12 +279,14 @@ function handleLogin(params) {
             status: rowStatus
           });
         } else {
-          Logger.log('Password mismatch for user: ' + rowUserId);
+          Logger.log('✗ Password mismatch for user: ' + rowUserId);
         }
+      } else if (userMatches) {
+        Logger.log('✗ User found but status is: "' + rowStatus + '" (not Active)');
       }
     }
 
-    Logger.log('Login failed - no matching user found or status inactive');
+    Logger.log('✗ Login failed - no matching user found or invalid credentials');
     return createResponse(false, 'ID Pengguna atau password salah');
 
   } catch(error) {
