@@ -256,13 +256,13 @@ async function loadOverviewStats() {
         const currentYear = new Date().getFullYear();
 
         // Load today's attendance
-        const attendanceResult = await SheetsAPI.getAttendance(null, 'admin', today, today);
+        const attendanceResult = await GoogleSheetsAPI.getAttendance(null, 'admin', today, today);
 
         // Load all users
-        const usersResult = await SheetsAPI.getAllUsers();
+        const usersResult = await GoogleSheetsAPI.getAllUsers();
 
         // Load monthly attendance
-        const monthlyResult = await SheetsAPI.getAttendance(
+        const monthlyResult = await GoogleSheetsAPI.getAttendance(
             null,
             'admin',
             `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`,
@@ -294,7 +294,7 @@ async function loadOverviewStats() {
 async function loadTodayAttendance() {
     try {
         const selectedDate = DOM.filterDate.value;
-        const result = await SheetsAPI.getAttendance(null, 'admin', selectedDate, selectedDate);
+        const result = await GoogleSheetsAPI.getAttendance(null, 'admin', selectedDate, selectedDate);
 
         if (result.success) {
             AdminState.todayAttendance = result.data || [];
@@ -346,7 +346,7 @@ function displayAttendanceTable() {
 // Load all users
 async function loadAllUsers() {
     try {
-        const result = await SheetsAPI.getAllUsers();
+        const result = await GoogleSheetsAPI.getAllUsers();
 
         if (result.success) {
             AdminState.users = result.data || [];
@@ -471,10 +471,10 @@ async function handleUserFormSubmit(e) {
                 updateData.password = userData.password;
             }
 
-            result = await SheetsAPI.updateUser(AdminState.editingUserId, updateData);
+            result = await GoogleSheetsAPI.updateUser(AdminState.editingUserId, updateData);
         } else {
             // Add new user
-            result = await SheetsAPI.addUser(userData);
+            result = await GoogleSheetsAPI.addUser(userData);
         }
 
         if (result.success) {
@@ -498,7 +498,7 @@ window.deleteUser = async function(userId, userName) {
     }
 
     try {
-        const result = await SheetsAPI.deleteUser(userId);
+        const result = await GoogleSheetsAPI.deleteUser(userId);
 
         if (result.success) {
             alert('Pengguna berjaya dihapus!');
@@ -527,7 +527,7 @@ async function generateReport() {
         const startDate = `${year}-${month}-01`;
         const endDate = `${year}-${month}-31`;
 
-        const result = await SheetsAPI.getAttendance(null, 'admin', startDate, endDate);
+        const result = await GoogleSheetsAPI.getAttendance(null, 'admin', startDate, endDate);
 
         if (result.success) {
             displayReport(result.data || [], month, year);
